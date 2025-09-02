@@ -1,0 +1,169 @@
+body{
+            margin: 0px;
+            padding: 0px;
+           
+            
+        }
+        
+        
+        
+        
+/* There is logo fix in center*/
+        #logo{
+            line-height: 14px;
+            position: absolute;
+            top: 35px;
+            left: 70px;
+            display: inline-block;
+            color: black;
+             font-family: "fira sans",sans-serif;
+            text-align: center;
+            
+        }
+        #logo h1{
+            color: rgb(46 20 255);
+        }
+        #logo h5{
+            color: rgb(38 77 64);
+        }
+        
+        
+       
+ /* There is navigation bar  fix in center */
+        .navigation_bar{
+             display: block;
+             background-color: rgb(0, 67, 114);
+            margin-top: 170px;
+            width: 100%;
+            color: rgb(0, 0, 0);
+            height: 50px;
+            
+        }
+
+/* There is  navigation bar  */
+        #navigation_bar{
+            display: inline-block;
+        }
+        #navigation_bar li{
+            display: inline-block;
+        }
+
+
+        #navigation_bar li a{
+            color: white;
+            text-decoration:none;
+            font-size: 21px;
+            padding: 0px 29px;
+             font-family: "fira sans",sans-serif;
+        }
+        #navigation_bar li a:hover,#navigation_bar li a.active{
+            text-decoration: underline;
+            color: rgb(181 233 244);
+             font-family: "fira sans",sans-serif;
+        }
+
+
+
+/* There is other and side object  */
+        #other{
+            top: 13px;
+            display: inline-block;
+            right: 34px;
+            position: absolute; 
+            margin: 4px;
+            
+            
+        }
+/* there is top side corner button */
+        .other_item{
+            background-color:  #533fca;
+            border: 1px solid black;
+            border-radius: 6px;
+            font-size: 18px;
+            color: rgb(255, 255, 255);
+            cursor: pointer;
+             font-family: "fira sans",sans-serif;
+             margin: 0px 5px;
+
+        }
+        .other_item:hover{
+             font-family: "fira sans",sans-serif;
+            background-color: #3f2f95;
+        }
+
+
+/* there is post section */
+        #post{
+            
+            padding-top:25px;
+            padding-left:12px;
+            width: 1000px;
+            height: 500px;
+            display: inline-block;
+            margin: 0px 197px;
+            font-size: 28px;
+            background-color: rgb(171, 203, 227);
+            border-top: 3px solid rgb(39, 37, 152);
+            border-left: 3px solid rgb(39, 37, 152); 
+            border-right: 3px solid rgb(39, 37, 152);
+            
+        }
+/* there is username finishing */
+        .username{
+            width: 435px;
+            margin-left:197px;
+            margin-right:197px;
+            font-size: 17px;
+            background-color:rgb(46 20 255);
+            margin-top: 92px;
+            padding-left: 29px;
+            font-family: "Poppins", sans-serif;
+            padding-top: 0px;
+            padding-bottom:2px;
+            margin-bottom: -65px;
+            border-top: 3px solid rgb(39, 37, 152);
+            border-left: 3px solid rgb(39, 37, 152); 
+            border-right: 3px solid rgb(39, 37, 152);
+            border-top-left-radius: 9px;
+            border-top-right-radius:60px;
+        }
+        .post_btn2{
+            top: 122px;
+            margin-bottom:4px;
+            padding: 9px;
+            width: 42px;
+            height: 45px;
+            margin-left:1030px;
+            background-color:  #3f2f95;;
+            border: 1px solid black;
+            border-radius: 6px;
+            font-size: 20px;
+            color: rgb(255, 255, 255);
+            cursor: pointer;
+             font-family: "fira sans",sans-serif;
+        }
+        .post_btn2:hover{
+            font-family: "fira sans",sans-serif;
+            background-color: #3f73ca;
+        }
+        .post_btn{
+            
+            margin-bottom:4px;
+            margin-left: 10px;
+            padding: 9px;
+            width: 112px;
+            height: 45px;
+            /* margin-left:1067px; */
+            left:1067px;
+            background-color:  #3f2f95;;
+            border: 1px solid black;
+            border-radius: 6px;
+            font-size: 20px;
+            color: rgb(255, 255, 255);
+            cursor: pointer;
+             font-family: "fira sans",sans-serif;
+        }
+        .post_btn:hover{
+            font-family: "fira sans",sans-serif;
+            background-color: #3f73ca;
+        }

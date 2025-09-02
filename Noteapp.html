@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ayush</title>
+    <style>
+        *{
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: "Poppins", sans-serif;
+}
+.container{
+    width: 100%;
+    min-height: 100vh;
+    background: linear-gradient(156deg,#4e59f9,#dea1f7);
+    padding-top: 4%;
+    padding-left: 10%;
+    color: #ffff;
+
+}
+.container h1{
+    display: flex;
+    align-items: center;
+}
+.container h1 img{
+    width: 4%;
+    
+    border-radius: 22px;
+}
+.container button{
+    font-size: 23px;
+    padding: 3px 14px;
+    background: linear-gradient(144deg,rgb(195 118 222),rgb(0, 0, 255));
+    margin-top: 34px;
+    cursor: pointer;
+    border: 0;
+    outline: 0;
+    border-radius: 40px;
+    color: #ffff;
+}
+.input-box{
+    position: relative;
+    width: 100%;
+    max-width: 600px;
+    min-height:177px;
+    margin: 20px 0;
+    padding: 20px;
+    color: #1c1c1d;
+    background-color: white;
+    outline: none;
+    border-radius: 6px;
+    
+}
+.input-box img{
+    width:7%;
+    position: absolute;
+    bottom: 15px;
+    right: 15px;
+    cursor: pointer;
+}
+@media only screen and (max-width:350px){
+            .input-box{
+                 position: relative;
+    width: 100%;
+    max-width: 600px;
+    min-height:177px;
+    margin: 20px 0;
+    padding: 20px;
+    color: #1c1c1d;
+    background-color: white;
+    outline: none;
+    border-radius: 6px;
+            }
+            .container{
+    width: 100%;
+    min-height: 100vh;
+    background: linear-gradient(156deg,#4e59f9,#dea1f7);
+    padding-top: 4%;
+    padding-left: 12px;
+    padding-right: 12px;
+    color: #ffff;
+
+        }
+
+        .container h1 img{
+    width: 28px;
+    border-radius: 22px;
+        }
+}
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1><img src="gym5.jpg"> Notes</h1>
+        <button class="btn">creat</button>
+        <div class="notes-container">
+            <!-- <p contenteditable="true" class="input-box">
+                <img src="gym3.jpg">
+            </p> -->
+        </div>
+    </div>
+    <script>
+        const notesContainer = document.querySelector(".notes-container");
+const createBtn = document.querySelector(".btn");
+let note = document.querySelectorAll(".input-box");
+
+function showNotes(){
+    notesContainer.innerHTML = localStorage.getItem("notes");
+}
+showNotes();
+
+function updateStorage(){
+    localStorage.setItem("notes", notesContainer.innerHTML);
+}
+
+createBtn.addEventListener("click", ()=>{
+    let inputBox = document.createElement("p");
+    let img = document.createElement("img");
+    inputBox.className = "input-box";
+    inputBox.setAttribute("contenteditable", "true");
+    img.src = "gym3.jpg";
+    notesContainer.appendChild(inputBox).appendChild(img);
+})
+
+notesContainer.addEventListener("click", function(e){
+    if(e.target.tagName === "IMG"){
+        e.target.parentElement.remove();
+        updateStorage();
+    }
+    else if(e.target.tagName ==="P"){
+        notes = document.querySelectorAll(".input-box");
+        notes.forEach(nt => {
+            nt.onkeyup = function(){
+                updateStorage();
+            }
+        });
+    }
+})
+
+document.addEventListener("keydown", event =>{
+    if(event.key === "Enter"){
+        document.execCommand("insertLineBreak")
+        event.preventDefault();
+    }
+})
+    </script>
+</body>
+
+</html>

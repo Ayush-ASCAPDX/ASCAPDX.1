@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ASCAPDX.1COM</title>
+  <link rel="stylesheet" href="index.css">
+  <script src="js.js"></script>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- Logo -->
+  <div id="logo">
+    <h1>ASCAPDX.1</h1>
+    <!-- <h5>This website is made for<br>Fun where you can post<br>what's on your mind</h5>
+  </div> -->
+  </div>
+  <!-- Navigation -->
+  <div class="navigation_bar">
+    <ul id="navigation_bar">
+      <li><a href="home.html" class="active">Home</a></li>
+      <li><a href="post.html">Post</a></li>
+      <li><a href="AboutMe.html">About us</a></li>
+      <li><a href="">Contact us</a></li>
+      <li><a href="">24/7 Help</a></li>
+      <li><a href="">Suggest us</a></li>
+    </ul>
+  </div>
+
+  <div id="other">
+    <a href="login.html" class="signup">Sign up →</a>
+  </div>
+
+  <!-- Welcome Text -->
+  <div id="welcome_text">
+    <h1>Welcome</h1>
+    <p id="para">Hi! User, there is something new for you. This website is made especially for you. We try to
+      give our best performance to you. This website is totally safe where you can sign up, use our project,
+      and rate us.</p>
+    <button id="btn" onclick="toggleHide()">Show/Hide</button>
+  </div>
+
+  <!-- Services -->
+  <h1 class="ourservice">Our Services</h1>
+  <section id="service">
+    <div class="box">
+      <img src="gym2.jpg" alt="#">
+      <h2>Services</h2>
+      <p>Our main purpose is that everyone should have freedom of thinking. We provide you with our best
+        performance.</p>
+    </div>
+    <div class="box">
+      <img src="ggym2.jpg" alt="#">
+      <h2>First Web on Internet</h2>
+      <p>We made this for you. If you feel something special from this website, then rate us.</p>
+    </div>
+  </section>
+
+  <!-- Apps -->
+  <div class="signupbottompu">
+    <div class="bottomtap"><a href="Game.html">Game</a></div>
+    <div class="bottomtap"><a href="Clock app.html">Clock</a></div>
+    <div class="bottomtap"><a href="Noteapp.html">Note app</a></div>
+  </div>
+
+  <!-- Clients -->
+  <div id="client-section">
+    <h1 class="ourclint">Our Clients</h1>
+    <div id="clients">
+      <img src="2.png" alt="client">
+      <img src="3.png" alt="client">
+      <img src="4.png" alt="client">
+      <img src="5.png" alt="client">
+      <img src="7.png" alt="client">
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    <p>copyright &copy; ASCAPDX.1 All rights reserved.</p>
+  </footer>
+
+  <script>
+    function toggleHide() {
+      let para = document.getElementById('para');
+      if (para.style.display !== 'none') {
+        para.style.display = 'none';
+      } else {
+        para.style.display = 'block';
+      }
+    }
+  </script>
+</body>
+</html>

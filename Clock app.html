@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clock.ASCAPDX</title>
+    <style>
+        * {
+            margin: 0px;
+            font-family: "Poppins", sans-serif;
+            padding: 0px;
+            box-sizing: border-box;
+        }
+
+        .hero {
+            width: 100%;
+            height: 100vh;
+            background: linear-gradient(45deg, #08001f, #30197d);
+            color: #fff;
+            position: relative;
+        }
+
+        .container {
+            width: 800px;
+            height: 180px;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+
+        }
+
+        .container::before {
+            content: '';
+            width: 180px;
+            height: 180px;
+            background: #f41b75;
+            position: absolute;
+            border-radius: 5px;
+            left: -50px;
+            top: -50px;
+            z-index: -1;
+        }
+
+        .container::after {
+            content: '';
+            width: 180px;
+            height: 180px;
+            background: #419aff;
+            position: absolute;
+            border-radius: 50%;
+            right: -30px;
+            bottom: -50px;
+            z-index: -1;
+        }
+
+        .clock {
+            width: 100%;
+            height: 100%;
+            background-color: rgba(250, 0, 255, 0.11);
+            display: flex;
+            border-radius: 10px;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(45px);
+        }
+
+        .clock span {
+            font-size: 80px;
+            display: inline-block;
+            position: relative;
+            text-align: center;
+            width: 110px;
+        }
+
+        .clock span::after {
+            font-size: 16px;
+            position: absolute;
+            bottom: -5px;
+
+            transform: translate(-50px);
+        }
+
+        #hrs::after {
+            content: 'HOURS';
+            left: 74%;
+        }
+
+        #min::after {
+            content: 'MINS';
+            left: 76%;
+        }
+
+        #sec::after {
+            content: 'SEC';
+            left: 81%;
+        }
+
+        .Ayush {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding-top: 75px;
+            font-size: 45px;
+            text-decoration: underline;
+
+        }
+
+        .back {
+            background-color: #251457;
+            width: 124px;
+            top: 14px;
+            left: 12px;
+            height: 40px;
+            position: absolute;
+            border-radius: 12px;
+            padding-left: 20px;
+            
+            padding-top: 3px;
+        }
+        .back:hover{
+            transform: rotate(360deg);
+            transition: 1s;
+        }
+
+        .back a {
+            text-decoration: none;
+            color: rgb(121, 126, 205);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="hero">
+        <h1 class="back"><a href="index.html">Back</a></h1>
+        <h1 class="Ayush">Clock Made By Ayush</h1>
+        <div class="container">
+            <div class="clock">
+                <span id="hrs">00</span>
+                <span>:</span>
+                <span id="min">00</span>
+                <span>:</span>
+                <span id="sec">00</span>
+            </div>
+        </div>
+    </div>
+    <script>
+        let hrs = document.getElementById("hrs");
+        let min = document.getElementById("min");
+        let sec = document.getElementById("sec");
+
+
+
+        setInterval(() => {
+            let currentTime = new Date();
+
+            hrs.innerHTML = [currentTime.getHours() < 10 ? "0" : ""] + currentTime.getHours();
+            min.innerHTML = [currentTime.getMinutes() < 10 ? "0" : ""] + currentTime.getMinutes();
+            sec.innerHTML = [currentTime.getSeconds() < 10 ? "0" : ""] + currentTime.getSeconds();
+        }, 1000)
+
+    </script>
+</body>
+
+</html>
