@@ -3,6 +3,36 @@
       padding: 0;
       font-family: "Fira Sans", sans-serif;
     }
+.product-ad {
+  text-align: center;
+  margin: 20px;
+  border: 1px solid #ddd;
+  padding: 10px;
+  border-radius: 8px;
+  background-color: #f9f9f9;
+}
+
+.product-ad img {
+  width: 150px;
+  height: 200px;
+  object-fit: cover;
+  border-radius: 5px;
+}
+
+.product-ad h3 {
+  font-size: 1.2em;
+  color: #333;
+}
+
+.product-ad p {
+  font-size: 1em;
+  color: #666;
+}
+
+.product-ad a {
+  text-decoration: none;
+  color: inherit;
+}
 
     /* Logo */
     #logo {
@@ -234,4 +264,5 @@
       .ourclint {
         font-size: 24px;
       }
+
     }
