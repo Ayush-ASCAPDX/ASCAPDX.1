@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reaction Time Tester</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background: #000000;
+      margin: 0;
+      padding: 40px;
+    }
+
+    h1 {
+      margin-top: 8vh;
+      margin-bottom: 20px;
+      color: white;
+    }
+
+    #balls {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      margin-bottom: 30px;
+    }
+
+    .ball {
+        margin-top: 20vh;
+        margin-bottom: 7vh;
+        /* position: absolute;
+        top: 45vh;
+        left: auto; */
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background-color: grey;
+      transition: background-color 0.3s;
+    }
+
+    #message {
+      font-size: 24px;
+      margin-top: 20px;
+      color: white;
+    }
+
+    #clickArea {
+    width: 223px;
+    height: 56px;
+    background-color: #9ebfff;
+    margin: 30px auto;
+    display: flex
+;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    border-radius: 10px;
+    user-select: none;
+    font-size: 20px;
+    font-weight: bold;
+}
+#navigation_bar{
+  color: #000;
+  display: flex;
+  /* justify-content: center; */
+  background-color: #3744ff;
+  width: 100vw;
+  margin-left:-40px;
+  height: 45px;
+ align-items: center;
+
+}
+
+#navigation_bar li {
+  margin-left: 2vw;
+     display: inline-block;
+}
+#navigation_bar li a {
+  text-decoration: none;
+  color: rgb(255, 249, 249);
+  font-size: 24px;
+  /* background-color: #66c9c1; */
+  border-radius:4px;
+
+}
+#navigation_bar li a:hover,#navigation_bar li a.active{
+            text-decoration: underline;
+            color: rgb(232, 250, 255);
+             font-family: "fira sans",sans-serif;
+             
+        }
+  </style>
+</head>
+<body>
+        <div id="navigation_bar">
+            <li><a href="index.html" class="active">Home</a></li>
+            <li><a href="AboutMe.html">About us</a></li>
+            <li><a href="">Contect us</a></li>
+
+    </div>
+  <h1>Reaction Time Tester</h1>
+
+  <div id="balls">
+    <div class="ball"></div>
+    <div class="ball"></div>
+    <div class="ball"></div>
+    <div class="ball"></div>
+    <div class="ball"></div>
+  </div>
+
+  <div id="clickArea">Click to Start</div>
+  <div id="message"></div>
+
+  <script>
+    const balls = document.querySelectorAll(".ball");
+    const clickArea = document.getElementById("clickArea");
+    const message = document.getElementById("message");
+
+    let startTime;
+    let waiting = false;
+    let canClick = false;
+
+    function resetBalls() {
+      balls.forEach(ball => ball.style.backgroundColor = "grey");
+    }
+
+    async function startTest() {
+      resetBalls();
+      message.textContent = "";
+      clickArea.textContent = "Wait...";
+
+      waiting = true;
+      canClick = false;
+
+      // Light up 5 balls one by one in red
+      for (let i = 0; i < balls.length; i++) {
+        balls[i].style.backgroundColor = "red";
+        await new Promise(res => setTimeout(res, 500));
+      }
+
+      // After last ball is red, turn all green after random delay
+      const randomDelay = Math.random() * 2000 + 1000;
+      await new Promise(res => setTimeout(res, randomDelay));
+
+      balls.forEach(ball => ball.style.backgroundColor = "green");
+      startTime = Date.now();
+      clickArea.textContent = "CLICK NOW!";
+      waiting = false;
+      canClick = true;
+    }
+
+    function handleClick() {
+      if (waiting) {
+        message.textContent = "Too soon! Wait for green!";
+        return;
+      }
+      if (canClick) {
+        const reactionTime = Date.now() - startTime;
+        message.textContent = `Your reaction time: ${reactionTime} ms`;
+        clickArea.textContent = "Click to Start Again";
+        canClick = false;
+      } else {
+        startTest();
+      }
+    }
+
+    clickArea.addEventListener("click", handleClick);
+  </script>
+</body>
+</html>
