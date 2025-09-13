@@ -98,8 +98,15 @@ button.reset:hover {
   transform: scale(1);
 }
 #navigation_bar{
+  color: #000;
   display: flex;
   /* justify-content: center; */
+  background-color: #3744ff;
+  width: 100vw;
+  margin-left:-40px;
+  height: 45px;
+ align-items: center;
+
 }
 
 #navigation_bar li {
@@ -107,14 +114,16 @@ button.reset:hover {
      display: inline-block;
 }
 #navigation_bar li a {
-  font-size: 21px;
-  background-color: #66c9c1;
+  text-decoration: none;
+  color: rgb(255, 249, 249);
+  font-size: 24px;
+  /* background-color: #66c9c1; */
   border-radius:4px;
 
 }
 #navigation_bar li a:hover,#navigation_bar li a.active{
             text-decoration: underline;
-            color: rgb(0, 0, 0);
+            color: rgb(232, 250, 255);
              font-family: "fira sans",sans-serif;
              
         }
