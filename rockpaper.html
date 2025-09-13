@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rock Paper Scissors</title>
+  <link rel="stylesheet" href="rockpaper.css">
+
+</head>
+<body>
+      <div id="navigation_bar">
+            <li><a href="home.html" class="active">Home</a></li>
+            <li><a href="AboutMe.html">About us</a></li>
+            <li><a href="">Contect us</a></li>
+
+    </div>
+  <h1>Rock Paper Scissors</h1>
+  <div class="choices">
+    <div class="card" onclick="play('rock')">🪨</div>
+    <div class="card" onclick="play('paper')">📄</div>
+    <div class="card" onclick="play('scissors')">✂️</div>
+    
+  </div>
+  <button class="btn" onclick="resetGame()">🔁 Reset Game</button>
+  
+  <div id="scoreboard">You: 0 | Computer: 0</div>
+
+<div class="battle">
+  <div class="player-pick" id="playerPick">❓</div>
+  <div class="vs" id="vsText">VS</div>
+  <div class="computer-pick" id="computerPick">❓</div>
+</div>
+
+<div id="result"></div>
+<div id="playAgainContainer"></div>
+
+  <script src="rockpaper.js"></script>
+</body>
+</html>
