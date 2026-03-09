@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Group Chat - ASCAPDX Chat</title>
+  <script src="/theme.js"></script>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body class="group-page">
+  <div class="app-shell">
+    <div class="sidebar">
+      <div class="sidebar-title" id="groupTitle">Group</div>
+      <div class="sidebar-user" id="groupMeta">Loading...</div>
+      <section class="group-members-panel" id="groupMembersPanel" aria-labelledby="groupMembersTitle">
+        <div class="group-members-title" id="groupMembersTitle">Members</div>
+        <div class="group-member-search" id="groupMemberSearchPanel">
+          <input
+            id="groupMemberSearchInput"
+            class="sidebar-search"
+            type="search"
+            placeholder="Search users to add..."
+            aria-label="Search users to add"
+          >
+          <div class="group-member-search-results" id="groupMemberSearchResults"></div>
+          <p class="group-member-search-status" id="groupMemberSearchStatus"></p>
+        </div>
+        <div class="group-members-list" id="groupMembersList"></div>
+      </section>
+      <div class="sidebar-actions">
+        <a href="/groups" class="secondary-link">All groups</a>
+        <a href="/chat" class="secondary-link">Private chat</a>
+      </div>
+    </div>
+
+    <div class="chat-layout">
+      <div class="chat-header">
+        <h2 class="chat-title" id="groupHeader">Group Chat</h2>
+        <span class="chat-model" id="memberCount">0 members</span>
+      </div>
+
+      <div class="chat-messages" id="groupMessages"></div>
+
+      <div class="chat-input">
+        <textarea id="groupMessageInput" class="chat-input-field" placeholder="Type message..."></textarea>
+        <button id="groupSendBtn" class="chat-send-btn" type="button">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js" defer></script>
+  <script src="/auth.js" defer></script>
+  <script src="/pwa.js" defer></script>
+  <script src="/group.js" defer></script>
+  <script src="/notifications-loader.js" defer></script>
+</body>
+</html>

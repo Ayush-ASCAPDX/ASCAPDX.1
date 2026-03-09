@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: chat-app
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: RTC_STUN_URLS
+        sync: false
+      - key: RTC_TURN_URLS
+        sync: false
+      - key: RTC_TURN_USERNAME
+        sync: false
+      - key: RTC_TURN_CREDENTIAL
+        sync: false
+      - key: RTC_FORCE_TURN
+        sync: false
