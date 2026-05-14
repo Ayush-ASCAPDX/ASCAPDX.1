@@ -36,8 +36,14 @@ const composerMetaEl = document.getElementById("composerMeta");
 const scrollToBottomBtn = document.getElementById("scrollToBottomBtn");
 const chatErrorPopupEl = document.getElementById("chatErrorPopup");
 const chatErrorPopupTextEl = document.getElementById("chatErrorPopupText");
+const typingIndicatorEl = document.getElementById("typingIndicator");
 const MAX_FILE_SIZE_BYTES = 300 * 1024 * 1024;
 const MAX_IMAGE_DIMENSION = 1920;
+let typingStatus = {
+  target: "",
+  active: false,
+  timeoutId: null
+};
 const IMAGE_COMPRESSION_TRIGGER_BYTES = 8 * 1024 * 1024;
 const IMAGE_COMPRESSION_ALWAYS_THRESHOLD_BYTES = 20 * 1024 * 1024;
 const IMAGE_COMPRESSION_MIN_SAVINGS = 0.1;
@@ -373,6 +379,11 @@ async function init() {
     }));
   });
 
+  socket.on("typingStatus", ({ from, typing }) => {
+    if (!selectedUser || selectedUser !== from) return;
+    setTypingIndicatorState(Boolean(typing));
+  });
+
   socket.on("messageDeleted", ({ messageId }) => {
     const row = document.querySelector(`[data-mid='${messageId}']`);
     if (row) row.remove();
@@ -407,6 +418,14 @@ async function init() {
   sendBtn.addEventListener("click", sendTextMessage);
   messageInputEl.addEventListener("input", onComposerInput);
   messageInputEl.addEventListener("keydown", onComposerKeydown);
+  messageInputEl.addEventListener("blur", () => {
+    if (!selectedUser) return;
+    emitTypingSignal(false);
+    if (typingStatus.timeoutId) {
+      clearTimeout(typingStatus.timeoutId);
+      typingStatus.timeoutId = null;
+    }
+  });
   userSearchInput.addEventListener("input", onUserSearchInput);
   scrollToBottomBtn.addEventListener("click", () => scrollToBottom(true));
   messagesEl.addEventListener("scroll", onMessagesScroll);
@@ -652,6 +671,35 @@ function sendTextMessage() {
   messageInputEl.value = "";
   storeDraft("");
   onComposerInput();
+  emitTypingSignal(false);
+}
+
+function setTypingIndicatorState(visible) {
+  if (!typingIndicatorEl) return;
+  typingIndicatorEl.classList.toggle("hidden", !visible);
+}
+
+function emitTypingSignal(active, target = selectedUser) {
+  if (!socket || !target) return;
+  if (typingStatus.target === target && typingStatus.active === active) return;
+
+  typingStatus.target = target;
+  typingStatus.active = active;
+
+  socket.emit("typingStatus", { to: target, typing: Boolean(active) });
+}
+
+function clearTypingActivity() {
+  if (typingStatus.timeoutId) {
+    clearTimeout(typingStatus.timeoutId);
+    typingStatus.timeoutId = null;
+  }
+  if (typingStatus.active && typingStatus.target) {
+    emitTypingSignal(false, typingStatus.target);
+  }
+  typingStatus.target = "";
+  typingStatus.active = false;
+  setTypingIndicatorState(false);
 }
 
 async function sendMediaMessage(event) {
@@ -918,6 +966,25 @@ function onComposerInput() {
     : `Enter to send, Shift+Enter for new line - ${messageLength} chars`;
   composerMetaEl.textContent = helperText;
   storeDraft(messageInputEl.value);
+
+  if (!selectedUser) return;
+
+  if (messageLength > 0) {
+    emitTypingSignal(true);
+    if (typingStatus.timeoutId) {
+      clearTimeout(typingStatus.timeoutId);
+    }
+    typingStatus.timeoutId = setTimeout(() => {
+      emitTypingSignal(false);
+      typingStatus.timeoutId = null;
+    }, 1200);
+  } else {
+    emitTypingSignal(false);
+    if (typingStatus.timeoutId) {
+      clearTimeout(typingStatus.timeoutId);
+      typingStatus.timeoutId = null;
+    }
+  }
 }
 
 function onComposerKeydown(event) {
@@ -936,11 +1003,13 @@ function autoResizeComposer() {
 
 function openConversation(username, nameText) {
   if (selectedUser && selectedUser !== username) {
+    emitTypingSignal(false, selectedUser);
     storeDraft(messageInputEl.value);
   }
 
   selectedUser = username;
   window.__chatSelectedUser = username;
+  setTypingIndicatorState(false);
   chatHasMoreHistory = false;
   chatHistoryLoading = true;
   chatOldestTimestamp = "";

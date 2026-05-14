@@ -1069,6 +1069,16 @@ io.on("connection", async (socket) => {
     }
   });
 
+  socket.on("typingStatus", ({ to, typing }) => {
+    const target = normalizeUsername(to);
+    if (!target) return;
+    if (target === username) return;
+    emitToUser(target, "typingStatus", {
+      from: username,
+      typing: Boolean(typing)
+    });
+  });
+
   socket.on("editMessage", async ({ messageId, newText }) => {
     const text = (newText || "").trim();
     if (!messageId || !text) return;

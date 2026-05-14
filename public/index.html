@@ -32,7 +32,12 @@
     <div class="chat-header">
       <div class="chat-title-wrap">
         <button id="backToChatsBtn" class="mobile-back-btn" type="button" aria-label="Back to chats">&#8592;</button>
-        <h2 class="chat-title" id="chatWith">Select User</h2>
+        <div class="chat-title-meta">
+          <h2 class="chat-title" id="chatWith">Select User</h2>
+          <div id="typingIndicator" class="chat-typing-indicator hidden" aria-live="polite" aria-atomic="true">
+            Typing<span class="typing-dots"><span></span><span></span><span></span></span>
+          </div>
+        </div>
       </div>
       <div class="header-actions">
         <span class="chat-model" id="presenceText">Offline</span>
