@@ -1141,16 +1141,11 @@ function persistLastChat() {
 }
 
 function restoreLastChat() {
-  const params = new URLSearchParams(window.location.search);
-  const requested = (params.get("with") || "").trim().toLowerCase();
-  const previous = requested || localStorage.getItem(`chat:last:${currentUser}`);
-  if (!previous || !usersPresence[previous]) {
-    window.__chatSelectedUser = "";
-    renderEmptyState("Select a chat", "Pick a user from the list to begin.");
-    return;
-  }
-  const name = usersPresence[previous]?.name ? `${usersPresence[previous].name} (@${previous})` : `@${previous}`;
-  openConversation(previous, name);
+  window.__chatSelectedUser = "";
+  selectedUser = "";
+  renderEmptyState("Select a chat", "Pick a user from the list to begin.");
+  updatePresenceIndicator();
+  returnToChatsList();
 }
 
 function getConversationUserFromMessage(message) {

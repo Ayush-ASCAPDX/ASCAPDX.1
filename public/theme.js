@@ -35,22 +35,29 @@
   applyTheme(getPreferredTheme());
 
   function mountButton() {
-    if (document.getElementById("themeToggleBtn")) return;
     if (!document.body) return;
-
-    const btn = document.createElement("button");
-    btn.id = "themeToggleBtn";
-    btn.type = "button";
-    btn.className = "theme-toggle-btn";
-    document.body.appendChild(btn);
+    const isProfilePage = window.location.pathname === "/profile";
+    let btn = document.getElementById("themeToggleBtn");
+    if (!btn) {
+      if (!isProfilePage) return;
+      btn = document.createElement("button");
+      btn.id = "themeToggleBtn";
+      btn.type = "button";
+      btn.className = "theme-toggle-btn";
+      btn.classList.add("theme-toggle-btn-inline");
+      document.body.appendChild(btn);
+    }
 
     const active = root.classList.contains("theme-dark") ? "dark" : "light";
     setTheme(active);
 
-    btn.addEventListener("click", () => {
-      const next = root.classList.contains("theme-dark") ? "light" : "dark";
-      setTheme(next);
-    });
+    if (!btn.dataset.themeBound) {
+      btn.dataset.themeBound = "true";
+      btn.addEventListener("click", () => {
+        const next = root.classList.contains("theme-dark") ? "light" : "dark";
+        setTheme(next);
+      });
+    }
   }
 
   if (document.readyState === "loading") {

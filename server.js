@@ -351,7 +351,7 @@ app.get("/groups", (req, res) => {
 });
 
 app.get("/groups/join", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "join-group.html"));
+  res.redirect("/groups");
 });
 
 app.get("/g/:slug", (req, res) => {
@@ -851,8 +851,45 @@ app.get("/api/groups/:slug/messages", authMiddleware, async (req, res) => {
     return res.status(403).json({ error: "Join this group to view messages" });
   }
 
-  const messages = await GroupMessage.find({ groupSlug: slug }).sort({ timestamp: 1 }).limit(500);
-  return res.json(messages);
+  const before = req.query.before;
+  const beforeDate = before ? new Date(before) : null;
+  const queryFilter = (beforeDate && !Number.isNaN(beforeDate.getTime()))
+    ? { groupSlug: slug, timestamp: { $lt: beforeDate } }
+    : { groupSlug: slug };
+
+  const messages = await GroupMessage.find(queryFilter).sort({ timestamp: -1 }).limit(GROUP_HISTORY_LIMIT).lean();
+  return res.json(messages.reverse());
+});
+
+app.post("/api/groups/:slug/leave", authMiddleware, async (req, res) => {
+  const slug = normalizeSlug(req.params.slug);
+  const group = await Group.findOne({ slug });
+  if (!group) {
+    return res.status(404).json({ error: "Group not found" });
+  }
+  if (group.owner === req.user.username) {
+    return res.status(400).json({ error: "Owners cannot leave their group. Delete it instead." });
+  }
+
+  group.members = group.members.filter((m) => m !== req.user.username);
+  await group.save();
+  return res.json({ ok: true });
+});
+
+app.delete("/api/groups/:slug", authMiddleware, async (req, res) => {
+  const slug = normalizeSlug(req.params.slug);
+  const group = await Group.findOne({ slug });
+  if (!group) {
+    return res.status(404).json({ error: "Group not found" });
+  }
+  if (group.owner !== req.user.username) {
+    return res.status(403).json({ error: "Only the owner can delete this group" });
+  }
+
+  await Group.deleteOne({ slug });
+  await GroupMessage.deleteMany({ groupSlug: slug });
+
+  return res.json({ ok: true });
 });
 
 app.delete("/api/conversations/:username", authMiddleware, async (req, res) => {
@@ -964,6 +1001,10 @@ io.on("connection", async (socket) => {
 
   io.emit("presence", buildPresencePayload());
 
+  // Join all group rooms the user is a member of to facilitate unread tracking
+  const myGroups = await Group.find({ members: username }).select("slug");
+  myGroups.forEach(g => socket.join(`group:${g.slug}`));
+
   socket.on("loadMessages", async ({ withUser, before }) => {
     if (!withUser) return;
     const targetUser = normalizeUsername(withUser);
@@ -1036,7 +1077,7 @@ io.on("connection", async (socket) => {
         from: username,
         to,
         type,
-        message: text,
+        message: text || (type === "text" ? "" : " "),
         mediaUrl,
         seen: false
       };
@@ -1161,30 +1202,39 @@ io.on("connection", async (socket) => {
     if (!group.members.includes(username)) return;
     socket.join(`group:${normalized}`);
 
-    const beforeDate = before ? new Date(before) : null;
-    const hasBefore = beforeDate && !Number.isNaN(beforeDate.getTime());
-    const baseFilter = { groupSlug: normalized };
-    const queryFilter = hasBefore
-      ? { ...baseFilter, timestamp: { $lt: beforeDate } }
-      : baseFilter;
+    try {
+      const beforeDate = before ? new Date(before) : null;
+      const hasBefore = beforeDate && !Number.isNaN(beforeDate.getTime());
+      const baseFilter = { groupSlug: normalized };
+      const queryFilter = hasBefore
+        ? { ...baseFilter, timestamp: { $lt: beforeDate } }
+        : baseFilter;
 
-    const history = await GroupMessage.find(queryFilter)
-      .sort({ timestamp: -1 })
-      .limit(GROUP_HISTORY_LIMIT)
-      .lean();
+      const history = await GroupMessage.find(queryFilter)
+        .sort({ timestamp: -1 })
+        .limit(GROUP_HISTORY_LIMIT)
+        .lean();
 
-    socket.emit("groupHistory", {
-      slug: normalized,
-      before: hasBefore ? beforeDate.toISOString() : "",
-      messages: history.reverse(),
-      hasMore: history.length === GROUP_HISTORY_LIMIT
-    });
+      socket.emit("groupHistory", {
+        slug: normalized,
+        before: hasBefore ? beforeDate.toISOString() : "",
+        messages: history.reverse(),
+        hasMore: history.length === GROUP_HISTORY_LIMIT
+      });
+      console.log(`Emitted groupHistory for ${normalized} with ${history.length} messages.`);
+    } catch (error) {
+      console.error(`Error loading group messages for ${normalized}:`, error);
+      socket.emit("groupError", { slug: normalized, error: "Failed to load messages." });
+    }
   });
 
-  socket.on("groupMessage", async ({ slug, message }) => {
+  socket.on("groupMessage", async ({ slug, message, type, mediaUrl, replyTo }) => {
     const normalized = normalizeSlug(slug);
     const text = (message || "").trim();
-    if (!normalized || !text) return;
+    const msgType = type || "text";
+    if (!normalized) return;
+    if (msgType === "text" && !text) return;
+    if ((msgType === "image" || msgType === "video") && !mediaUrl) return;
 
     const group = await Group.findOne({ slug: normalized }).select("slug members");
     if (!group) return;
@@ -1193,16 +1243,17 @@ io.on("connection", async (socket) => {
     const saved = await GroupMessage.create({
       groupSlug: normalized,
       from: username,
-      message: text
+      message: text || (msgType === "text" ? "" : " "),
+      type: msgType,
+      mediaUrl: mediaUrl || "",
+      replyTo: replyTo || null,
+      reactions: []
     });
 
     const payload = { slug: normalized, message: saved };
 
-    // Broadcast to current room members and every online member socket for reliability.
+    // Broadcast to everyone currently viewing the group chat room.
     io.to(`group:${normalized}`).emit("groupMessage", payload);
-    group.members.forEach((memberUsername) => {
-      emitToUser(memberUsername, "groupMessage", payload);
-    });
 
     await Promise.all(
       group.members
@@ -1221,6 +1272,69 @@ io.on("connection", async (socket) => {
           })
         )
     );
+  });
+
+  socket.on("editGroupMessage", async ({ messageId, newText }) => {
+    const text = (newText || "").trim();
+    if (!messageId || !text) return;
+
+    const msg = await GroupMessage.findById(messageId);
+    if (!msg || msg.from !== username) return;
+
+    msg.message = text;
+    msg.edited = true;
+    msg.editedAt = new Date();
+    await msg.save();
+
+    io.to(`group:${msg.groupSlug}`).emit("groupMessageEdited", msg);
+  });
+
+  socket.on("deleteGroupMessage", async ({ messageId }) => {
+    if (!messageId) return;
+
+    const msg = await GroupMessage.findById(messageId);
+    if (!msg || msg.from !== username) return;
+
+    const slug = msg.groupSlug;
+    await GroupMessage.deleteOne({ _id: messageId });
+    io.to(`group:${slug}`).emit("groupMessageDeleted", { messageId });
+  });
+
+  socket.on("reactToGroupMessage", async ({ messageId, emoji }) => {
+    if (!messageId || !emoji) return;
+
+    const msg = await GroupMessage.findById(messageId);
+    if (!msg) return;
+
+    // Ensure reactions array exists
+    if (!msg.reactions) msg.reactions = [];
+
+    // Find existing reaction for this emoji
+    let reaction = msg.reactions.find(r => r.emoji === emoji);
+
+    if (reaction) {
+      const userIndex = reaction.usernames.indexOf(username);
+      if (userIndex > -1) {
+        // Toggle off: remove user
+        reaction.usernames.splice(userIndex, 1);
+        // Remove emoji group if no users left
+        if (reaction.usernames.length === 0) {
+          msg.reactions = msg.reactions.filter(r => r.emoji !== emoji);
+        }
+      } else {
+        // Toggle on: add user
+        reaction.usernames.push(username);
+      }
+    } else {
+      // New emoji reaction
+      msg.reactions.push({ emoji, usernames: [username] });
+    }
+
+    await msg.save();
+    io.to(`group:${msg.groupSlug}`).emit("groupMessageReacted", {
+      messageId: msg._id,
+      reactions: msg.reactions
+    });
   });
 
   socket.on("video-answer", ({ to, answer, callId }) => {
