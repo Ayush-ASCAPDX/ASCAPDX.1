@@ -13,6 +13,18 @@ const User = require("./models/User");
 const Group = require("./models/Group");
 const GroupMessage = require("./models/GroupMessage");
 
+// Post Model for Feed
+const PostSchema = new mongoose.Schema({
+  username: { type: String, required: true },
+  author: { type: String },
+  content: { type: String, required: true },
+  imageUrl: { type: String },
+  likes: { type: Number, default: 0 },
+  mentions: [{ type: String }], // New field for tagged users
+  timestamp: { type: Date, default: Date.now }
+});
+const Post = mongoose.model("Post", PostSchema);
+
 const app = express();
 const server = http.createServer(app);
 const MAX_MEDIA_FILE_BYTES = 300 * 1024 * 1024;
@@ -346,8 +358,20 @@ app.get("/profile", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "profile.html"));
 });
 
+app.get("/user-profile", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "user-profile.html"));
+});
+
 app.get("/groups", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "groups.html"));
+});
+
+app.get("/feed", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "feed.html"));
+});
+
+app.get("/create-post", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "create-post.html"));
 });
 
 app.get("/groups/join", (req, res) => {
@@ -567,10 +591,12 @@ app.put("/api/settings", authMiddleware, async (req, res) => {
 app.get("/api/profile/:username", authMiddleware, async (req, res) => {
   const username = normalizeUsername(req.params.username);
   if (!username) {
+    console.log("Server: API /profile/:username - Username is missing from params.");
     return res.status(400).json({ error: "Username is required" });
   }
 
-  const user = await User.findOne({ username }).select("username name bio avatarUrl membershipTier");
+  const user = await User.findOne({ username }).select("username name bio avatarUrl membershipTier lastSeen createdAt");
+  console.log(`Server: API /profile/:username - Searching for user: "${username}", Found: ${!!user}`);
   if (!user) {
     return res.status(404).json({ error: "User not found" });
   }
@@ -580,8 +606,42 @@ app.get("/api/profile/:username", authMiddleware, async (req, res) => {
     name: user.name,
     bio: user.bio || "",
     avatarUrl: user.avatarUrl || "",
-    membershipTier: user.membershipTier || "free"
+    membershipTier: user.membershipTier || "free",
+    lastSeen: user.lastSeen || null,
+    createdAt: user.createdAt || null
   });
+});
+
+// Feed API
+app.get("/api/posts", authMiddleware, async (req, res) => {
+  try {
+    const posts = await Post.find().sort({ timestamp: -1 }).limit(50);
+    res.json(posts);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch posts" });
+  }
+});
+
+app.post("/api/posts", authMiddleware, async (req, res) => {
+  try {
+    const { content, imageUrl } = req.body;
+    if (!content && !imageUrl) return res.status(400).json({ error: "Content or image is required" });
+    
+    const user = await User.findOne({ username: req.user.username });
+    const mentions = (content.match(/@(\w+)/g) || []).map(mention => mention.substring(1).toLowerCase());
+    const uniqueMentions = [...new Set(mentions)]; // Ensure unique mentions
+
+    const post = await Post.create({
+      username: user.username,
+      author: user.name || user.username,
+      content,
+      imageUrl,
+      mentions: uniqueMentions
+    });
+    res.status(201).json(post);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to create post" });
+  }
 });
 
 app.put("/api/profile", authMiddleware, async (req, res) => {
@@ -1362,6 +1422,10 @@ io.on("connection", async (socket) => {
     delete onlineUsers[username].sockets[socket.id];
     if (!Object.keys(onlineUsers[username].sockets).length) {
       delete onlineUsers[username];
+      // Update database with last seen timestamp when the user fully disconnects
+      User.updateOne({ username }, { $set: { lastSeen: new Date() } }).catch(err => {
+        console.error("Failed to update lastSeen:", err);
+      });
     }
     io.emit("presence", buildPresencePayload());
   });

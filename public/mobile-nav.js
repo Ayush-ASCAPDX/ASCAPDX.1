@@ -1,13 +1,16 @@
 (function initMobileNav() {
-  if (window.__mobileNavInit) return;
   window.__mobileNavInit = true;
+
+  // Remove existing nav to prevent duplicates during SPA navigation
+  const existingNav = document.querySelector(".mobile-global-nav");
+  if (existingNav) existingNav.remove();
 
   const path = window.location.pathname || "/";
   const items = [
     { href: "/chat", label: "Home", icon: "⌂", match: (p) => p === "/chat" || p === "/" },
+    { href: "/feed", label: "Feed", icon: "▥", match: (p) => p === "/feed" },
     { href: "/groups", label: "Groups", icon: "◌", match: (p) => p === "/groups" || p.startsWith("/groups/") },
-    { href: "/groups", label: "Discover", icon: "▥", match: (p) => p === "/groups" || p === "/groups/join" || p.startsWith("/groups/") },
-    { href: "/profile", label: "Profile", icon: "◎", match: (p) => p === "/profile" || p === "/settings" }
+    { href: "/profile", label: "Profile", icon: "◎", match: (p) => p === "/profile" || p === "/settings" || p === "/user-profile" }
   ];
 
   const nav = document.createElement("nav");

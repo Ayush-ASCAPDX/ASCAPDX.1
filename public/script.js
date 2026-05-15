@@ -1,3 +1,4 @@
+(function() {
 let socket;
 let currentUser;
 let selectedUser = "";
@@ -259,6 +260,9 @@ async function init() {
   currentUserEl.innerText = `Logged in: @${me.username}`;
   hydrateConversationCache();
 
+  if (window.__chatSocket) {
+    window.__chatSocket.close();
+  }
   socket = io({ auth: { token: getToken() } });
   window.__chatSocket = socket;
 
@@ -430,13 +434,13 @@ async function init() {
   scrollToBottomBtn.addEventListener("click", () => scrollToBottom(true));
   messagesEl.addEventListener("scroll", onMessagesScroll);
   document.getElementById("settingsBtn").addEventListener("click", () => {
-    window.location.href = "/settings";
+    if (window.navigateTo) window.navigateTo("/settings"); else window.location.href = "/settings";
   });
   document.getElementById("profileBtn").addEventListener("click", () => {
-    window.location.href = "/profile";
+    if (window.navigateTo) window.navigateTo("/profile"); else window.location.href = "/profile";
   });
   document.getElementById("groupsBtn").addEventListener("click", () => {
-    window.location.href = "/groups";
+    if (window.navigateTo) window.navigateTo("/groups"); else window.location.href = "/groups";
   });
   document.getElementById("logoutBtn").addEventListener("click", logout);
 
@@ -453,7 +457,7 @@ async function init() {
 
   videoCallBtn.addEventListener("click", () => {
     if (!selectedUser) return;
-    window.location.href = `/video?with=${encodeURIComponent(selectedUser)}&autostart=1`;
+    if (window.navigateTo) window.navigateTo(`/video?with=${encodeURIComponent(selectedUser)}&autostart=1`); else window.location.href = `/video?with=${encodeURIComponent(selectedUser)}&autostart=1`;
   });
 
   deleteConversationBtn.addEventListener("click", deleteConversation);
@@ -585,6 +589,14 @@ function buildUserRow(username) {
   div.onclick = () => {
     openConversation(username, nameText);
   };
+
+  const avatarEl = div.querySelector(".session-avatar");
+  if (avatarEl) {
+    avatarEl.onclick = (e) => {
+      e.stopPropagation(); 
+      if (window.navigateTo) window.navigateTo(`/user-profile?username=${encodeURIComponent(username)}`); else window.location.href = `/user-profile?username=${encodeURIComponent(username)}`;
+    };
+  }
 
   return div;
 }
@@ -1299,3 +1311,4 @@ function hydrateConversationCache() {
     // Ignore malformed cache payloads.
   }
 }
+})();
