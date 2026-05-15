@@ -51,6 +51,16 @@
     .glow-active { box-shadow: 0 0 15px rgba(56, 189, 248, 0.2); }
     #groupMessages::-webkit-scrollbar { width: 6px; }
     #groupMessages::-webkit-scrollbar-thumb { background: #273647; border-radius: 10px; }
+
+    @media (max-width: 768px) {
+      #groupMessages {
+        padding-bottom: calc(92px + env(safe-area-inset-bottom));
+      }
+
+      .group-input-bar {
+        bottom: calc(78px + env(safe-area-inset-bottom));
+      }
+    }
   </style>
 </head>
 <body class="flex flex-col h-screen overflow-hidden">
@@ -123,7 +133,7 @@
   </div>
 
   <!-- Input Bar -->
-  <footer class="sticky bottom-0 bg-surface/90 glass-header px-md py-md pb-safe">
+  <footer class="group-input-bar sticky bottom-0 bg-surface/90 glass-header px-md py-md pb-safe">
     <div id="groupFileLoader" class="hidden absolute -top-10 left-4 right-4 flex items-center gap-2 px-md py-2 text-[10px] text-primary bg-surface-container-low/80 backdrop-blur rounded-t-xl border-x border-t border-outline-variant/30">
       <div class="w-3 h-3 border-2 border-primary/30 border-t-primary rounded-full animate-spin"></div>
       <span>Sending file...</span>
@@ -159,5 +169,7 @@
 <script src="/socket.io/socket.io.js" defer></script>
 <script src="/auth.js" defer></script>
 <script src="/group.js" defer></script>
+<script src="/nav-loader.js" defer></script>
+<script src="/mobile-nav.js" defer></script>
 </body>
 </html>

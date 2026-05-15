@@ -43,6 +43,9 @@
           await loadScript("/socket.io/socket.io.js");
         }
         await loadScript("/call-notifications.js");
+        if (window.__startCallNotifications) {
+          window.__startCallNotifications();
+        }
       } catch (_) {
         // Ignore notification loader failures.
       }

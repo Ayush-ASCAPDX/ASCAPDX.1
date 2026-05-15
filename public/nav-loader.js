@@ -88,10 +88,12 @@
     if (window.__chatSocket) {
       window.__chatSocket.close();
       window.__chatSocket = null;
+      window.__sovereignCallAlertsInit = false;
     }
     if (window.__globalNotificationSocket) {
       window.__globalNotificationSocket.close();
       window.__globalNotificationSocket = null;
+      window.__sovereignCallAlertsInit = false;
     }
 
     // Force-clear all intervals set by previous pages (like "Last seen" timers)
@@ -209,6 +211,12 @@
     // Trigger entrance animation (fade-in)
     requestAnimationFrame(() => {
       document.body.classList.remove("page-exit");
+      if (window.__renderMobileNav) {
+        window.__renderMobileNav();
+      }
+      if (window.__startCallNotifications) {
+        window.__startCallNotifications();
+      }
       // Call specific init functions after scripts have been appended to the DOM
       if (window.initChatPage && isChatPage) {
         window.initChatPage();
@@ -250,13 +258,20 @@
   window.addEventListener("pageshow", stopLoader);
   window.addEventListener("load", stopLoader);
 
-  // Ensure mobile-nav is loaded on every page
-  // This centralizes the loading of the mobile navigation bar.
+  // Ensure shared global scripts are loaded on every page.
+  // This centralizes the loading of the mobile navigation bar and notifications.
   // It will only execute once due to the internal guard in mobile-nav.js
-  if (!window.__mobileNavInit) {
+  if (!window.__mobileNavInit && !document.querySelector('script[src="/mobile-nav.js"]')) {
     const script = document.createElement("script");
     script.src = "/mobile-nav.js";
     script.defer = true; // Defer loading to not block rendering
+    document.body.appendChild(script);
+  }
+
+  if (!window.__notificationsLoaderInit && !document.querySelector('script[src="/notifications-loader.js"]')) {
+    const script = document.createElement("script");
+    script.src = "/notifications-loader.js";
+    script.defer = true;
     document.body.appendChild(script);
   }
 })();
