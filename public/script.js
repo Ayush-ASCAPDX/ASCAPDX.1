@@ -10,34 +10,18 @@ let chatHasMoreHistory = false;
 let chatHistoryLoading = false;
 let chatOldestTimestamp = "";
 let shouldPinToLatestOnOpen = false;
+
+// DOM references used across multiple functions
+let usersListEl, currentUserEl, chatWithEl, messagesEl, presenceTextEl, videoCallBtn, deleteConversationBtn, chatMenuBtn, chatMenu, backToChatsBtn, sendBtn, attachBtn, fileInputEl, fileLoaderEl, userSearchInput, messageInputEl, composerMetaEl, scrollToBottomBtn, chatErrorPopupEl, chatErrorPopupTextEl, typingIndicatorEl;
+let messageContextMenu, ctxEditBtn, ctxReplyBtn, ctxForwardBtn, ctxCopyBtn, ctxDeleteBtn, editIndicator, cancelEditBtn, replyIndicator, cancelReplyBtn, replyTargetUser, replyTargetText, forwardModal, forwardUserList, closeForwardModalBtn;
+let mobileTabletQuery = window.matchMedia("(max-width: 990px)");
+let replyingToMsg = null, currentForwardMessage = null, isSendingFile = false, pendingFileSend = null, chatErrorPopupTimer = null;
+
 const conversationCache = new Map();
 const CONVERSATION_CACHE_MAX_PER_CHAT = 120;
 const CONVERSATION_CACHE_MAX_CHATS = 40;
 const CONVERSATION_CACHE_STORAGE_PREFIX = "chat:conversation-cache:";
 let cachePersistTimer = null;
-
-const usersListEl = document.getElementById("usersList");
-const currentUserEl = document.getElementById("currentUser");
-const chatWithEl = document.getElementById("chatWith");
-const messagesEl = document.getElementById("messages");
-const presenceTextEl = document.getElementById("presenceText");
-const videoCallBtn = document.getElementById("videoCallBtn");
-const deleteConversationBtn = document.getElementById("deleteConversationBtn");
-const chatMenuBtn = document.getElementById("chatMenuBtn");
-const chatMenu = document.getElementById("chatMenu");
-const backToChatsBtn = document.getElementById("backToChatsBtn");
-const mobileTabletQuery = window.matchMedia("(max-width: 990px)");
-const sendBtn = document.getElementById("sendBtn");
-const attachBtn = document.getElementById("attachBtn");
-const fileInputEl = document.getElementById("fileInput");
-const fileLoaderEl = document.getElementById("fileLoader");
-const userSearchInput = document.getElementById("userSearchInput");
-const messageInputEl = document.getElementById("messageInput");
-const composerMetaEl = document.getElementById("composerMeta");
-const scrollToBottomBtn = document.getElementById("scrollToBottomBtn");
-const chatErrorPopupEl = document.getElementById("chatErrorPopup");
-const chatErrorPopupTextEl = document.getElementById("chatErrorPopupText");
-const typingIndicatorEl = document.getElementById("typingIndicator");
 const MAX_FILE_SIZE_BYTES = 300 * 1024 * 1024;
 const MAX_IMAGE_DIMENSION = 1920;
 let typingStatus = {
@@ -46,11 +30,10 @@ let typingStatus = {
   timeoutId: null
 };
 const IMAGE_COMPRESSION_TRIGGER_BYTES = 8 * 1024 * 1024;
+let editingId = null;
+let longPressTimer = null;
 const IMAGE_COMPRESSION_ALWAYS_THRESHOLD_BYTES = 20 * 1024 * 1024;
 const IMAGE_COMPRESSION_MIN_SAVINGS = 0.1;
-let isSendingFile = false;
-let pendingFileSend = null;
-let chatErrorPopupTimer = null;
 const timeFormatter = new Intl.DateTimeFormat([], { hour: "2-digit", minute: "2-digit" });
 const USER_LIST_BATCH_SIZE = 40;
 
@@ -254,6 +237,52 @@ async function prepareUploadPayload(file) {
 
 async function init() {
   const me = await requireAuth();
+  // Assign DOM elements to module-scoped variables
+  usersListEl = document.getElementById("usersList");
+  currentUserEl = document.getElementById("currentUser");
+  chatWithEl = document.getElementById("chatWith");
+  messagesEl = document.getElementById("messages");
+  presenceTextEl = document.getElementById("presenceText");
+  videoCallBtn = document.getElementById("videoCallBtn");
+  deleteConversationBtn = document.getElementById("deleteConversationBtn");
+  chatMenuBtn = document.getElementById("chatMenuBtn");
+  chatMenu = document.getElementById("chatMenu");
+  backToChatsBtn = document.getElementById("backToChatsBtn");
+  sendBtn = document.getElementById("sendBtn");
+  attachBtn = document.getElementById("attachBtn");
+  fileInputEl = document.getElementById("fileInput");
+  fileLoaderEl = document.getElementById("fileLoader");
+  userSearchInput = document.getElementById("userSearchInput");
+  messageInputEl = document.getElementById("messageInput");
+  composerMetaEl = document.getElementById("composerMeta");
+  scrollToBottomBtn = document.getElementById("scrollToBottomBtn");
+  chatErrorPopupEl = document.getElementById("chatErrorPopup");
+  chatErrorPopupTextEl = document.getElementById("chatErrorPopupText");
+  typingIndicatorEl = document.getElementById("typingIndicator");
+
+  messageContextMenu = document.getElementById("messageContextMenu");
+  ctxEditBtn = document.getElementById("ctxEditBtn");
+  ctxReplyBtn = document.getElementById("ctxReplyBtn");
+  ctxForwardBtn = document.getElementById("ctxForwardBtn");
+  ctxCopyBtn = document.getElementById("ctxCopyBtn");
+  ctxDeleteBtn = document.getElementById("ctxDeleteBtn");
+  editIndicator = document.getElementById("editIndicator");
+  cancelEditBtn = document.getElementById("cancelEditBtn");
+  replyIndicator = document.getElementById("replyIndicator");
+  cancelReplyBtn = document.getElementById("cancelReplyBtn");
+  replyTargetUser = document.getElementById("replyTargetUser");
+  replyTargetText = document.getElementById("replyTargetText");
+  forwardModal = document.getElementById("forwardModal");
+  forwardUserList = document.getElementById("forwardUserList");
+  closeForwardModalBtn = document.getElementById("closeForwardModalBtn");
+
+  // Re-initialize global-like variables that depend on DOM elements
+  replyingToMsg = null; // Reset reply state on page load
+  currentForwardMessage = null; // Reset forward state on page load
+  isSendingFile = false; // Reset file sending state
+  pendingFileSend = null; // Reset pending file
+  chatErrorPopupTimer = null; // Reset error popup timer
+
   if (!me) return;
 
   currentUser = me.username;
@@ -373,10 +402,19 @@ async function init() {
     }
   });
 
+  socket.on("messageReacted", ({ messageId, reactions }) => {
+    const row = document.querySelector(`[data-mid='${messageId}']`);
+    if (row) {
+      renderReactions(row, reactions);
+    }
+    patchMessageInCache(messageId, (item) => ({
+      ...item,
+      reactions: reactions || []
+    }));
+  });
+
   socket.on("messageEdited", (message) => {
-    const bubble = document.querySelector(`[data-mid='${message._id}'] .message-content`);
-    if (!bubble) return;
-    bubble.textContent = `${message.message} (edited)`;
+    updateMessageInUI(message);
     patchMessageInCache(message._id, (item) => ({
       ...item,
       ...message
@@ -388,99 +426,97 @@ async function init() {
     setTypingIndicatorState(Boolean(typing));
   });
 
-  socket.on("messageDeleted", ({ messageId }) => {
-    const row = document.querySelector(`[data-mid='${messageId}']`);
-    if (row) row.remove();
-    removeMessageFromCache(messageId);
-  });
-
-  socket.on("conversationDeleted", ({ withUser }) => {
-    if (withUser === selectedUser) {
-      messagesEl.innerHTML = "";
-      renderEmptyState("No messages yet", "Start the conversation with a quick hello.");
-    }
-  });
-
-  socket.on("messageError", ({ error, clientId }) => {
-    if (!error) return;
-    if (pendingFileSend && clientId && clientId === pendingFileSend.clientId) {
-      setFileErrorState(error);
-      showErrorPopup(error);
-      return;
-    }
-    showErrorPopup(error);
-    clearFileStatus();
-  });
-
-  socket.on("disconnect", () => {
-    if (!pendingFileSend) return;
-    const errorMessage = "Upload failed. Connection dropped while sending the file.";
-    setFileErrorState(errorMessage);
-    showErrorPopup(errorMessage);
-  });
-
-  sendBtn.addEventListener("click", sendTextMessage);
-  messageInputEl.addEventListener("input", onComposerInput);
-  messageInputEl.addEventListener("keydown", onComposerKeydown);
-  messageInputEl.addEventListener("blur", () => {
-    if (!selectedUser) return;
-    emitTypingSignal(false);
-    if (typingStatus.timeoutId) {
-      clearTimeout(typingStatus.timeoutId);
-      typingStatus.timeoutId = null;
-    }
-  });
-  userSearchInput.addEventListener("input", onUserSearchInput);
-  scrollToBottomBtn.addEventListener("click", () => scrollToBottom(true));
-  messagesEl.addEventListener("scroll", onMessagesScroll);
-  document.getElementById("settingsBtn").addEventListener("click", () => {
+  if (sendBtn) sendBtn.addEventListener("click", sendTextMessage);
+  if (messageInputEl) {
+    messageInputEl.addEventListener("input", onComposerInputAndResize);
+    messageInputEl.addEventListener("keydown", onComposerKeydown);
+    messageInputEl.addEventListener("blur", () => {
+      if (!selectedUser) return;
+      emitTypingSignal(false);
+      if (typingStatus.timeoutId) {
+        clearTimeout(typingStatus.timeoutId);
+        typingStatus.timeoutId = null;
+      }
+      if (editingId) exitEditMode();
+    });
+  }
+  if (userSearchInput) userSearchInput.addEventListener("input", onUserSearchInput);
+  if (scrollToBottomBtn) scrollToBottomBtn.addEventListener("click", () => scrollToBottom(true));
+  if (messagesEl) messagesEl.addEventListener("scroll", onMessagesScroll);
+  
+  const setBtn = document.getElementById("settingsBtn");
+  if (setBtn) setBtn.addEventListener("click", () => {
     if (window.navigateTo) window.navigateTo("/settings"); else window.location.href = "/settings";
   });
-  document.getElementById("profileBtn").addEventListener("click", () => {
+  
+  const profBtn = document.getElementById("profileBtn");
+  if (profBtn) profBtn.addEventListener("click", () => {
     if (window.navigateTo) window.navigateTo("/profile"); else window.location.href = "/profile";
   });
-  document.getElementById("groupsBtn").addEventListener("click", () => {
+
+  const grpBtn = document.getElementById("groupsBtn");
+  if (grpBtn) grpBtn.addEventListener("click", () => {
     if (window.navigateTo) window.navigateTo("/groups"); else window.location.href = "/groups";
   });
-  document.getElementById("logoutBtn").addEventListener("click", logout);
 
-  attachBtn.addEventListener("click", () => {
-    if (isSendingFile) return;
-    if (!selectedUser) {
-      alert("Select a user first");
-      return;
-    }
-    fileInputEl.click();
+  const logBtn = document.getElementById("logoutBtn");
+  if (logBtn) logBtn.addEventListener("click", logout);
+
+  if (attachBtn) {
+    attachBtn.addEventListener("click", () => {
+      if (isSendingFile) return;
+      if (!selectedUser) { alert("Select a user first"); return; }
+      fileInputEl.click();
+    });
+  }
+
+  if (fileInputEl) fileInputEl.addEventListener("change", sendMediaMessage);
+
+  if (videoCallBtn) {
+    videoCallBtn.addEventListener("click", () => {
+      if (!selectedUser) return;
+      const url = `/video?with=${encodeURIComponent(selectedUser)}&autostart=1`;
+      if (window.navigateTo) window.navigateTo(url); else window.location.href = url;
+    });
+  }
+
+  if (cancelEditBtn) cancelEditBtn.addEventListener("click", exitEditMode);
+  if (closeForwardModalBtn) closeForwardModalBtn.addEventListener("click", closeForwardModal);
+  if (forwardModal) forwardModal.onclick = (e) => { if (e.target === forwardModal) closeForwardModal(); };
+
+  if (cancelReplyBtn) cancelReplyBtn.addEventListener("click", exitReplyMode);
+  if (deleteConversationBtn) deleteConversationBtn.addEventListener("click", deleteConversation);
+  
+  if (chatMenuBtn && chatMenu) {
+    chatMenuBtn.addEventListener("click", (event) => {
+      event.stopPropagation();
+      chatMenu.classList.toggle("hidden");
+    });
+  }
+  
+  if (backToChatsBtn) backToChatsBtn.addEventListener("click", returnToChatsList);
+
+  document.addEventListener("click", (e) => {
+    if (messageContextMenu && !messageContextMenu.contains(e.target)) hideContextMenu();
+    if (chatMenu) chatMenu.classList.add("hidden");
   });
 
-  fileInputEl.addEventListener("change", sendMediaMessage);
-
-  videoCallBtn.addEventListener("click", () => {
-    if (!selectedUser) return;
-    if (window.navigateTo) window.navigateTo(`/video?with=${encodeURIComponent(selectedUser)}&autostart=1`); else window.location.href = `/video?with=${encodeURIComponent(selectedUser)}&autostart=1`;
-  });
-
-  deleteConversationBtn.addEventListener("click", deleteConversation);
-  chatMenuBtn.addEventListener("click", (event) => {
-    event.stopPropagation();
-    chatMenu.classList.toggle("hidden");
-  });
-  backToChatsBtn.addEventListener("click", returnToChatsList);
   if (mobileTabletQuery.addEventListener) {
     mobileTabletQuery.addEventListener("change", applyResponsiveShellState);
-  } else if (mobileTabletQuery.addListener) {
-    mobileTabletQuery.addListener(applyResponsiveShellState);
   }
 
   await loadUsersFromApi();
   applyResponsiveShellState();
   updateComposerMeta();
   restoreLastChat();
+}
 
-  document.addEventListener("click", () => {
-    chatMenu.classList.add("hidden");
-    closeAllMessageMenus();
-  });
+// Expose init for SPA loader
+window.initChatPage = init;
+
+// Initialize if elements are present
+if (document.getElementById("usersList")) {
+  init();
 }
 
 function mergePresenceUpdate(presence) {
@@ -506,7 +542,10 @@ function mergePresenceUpdate(presence) {
 
 async function loadUsersFromApi() {
   const res = await authFetch("/api/users");
-  if (!res.ok) return;
+  if (!res.ok) {
+    console.error("Failed to load users from API:", res.status, res.statusText);
+    return;
+  }
   const users = await res.json();
 
   users.forEach((u) => {
@@ -529,6 +568,7 @@ async function loadUsersFromApi() {
 }
 
 function renderUsers() {
+  // usersListEl is now guaranteed to be a fresh reference
   const usernames = Object.keys(usersPresence)
     .filter((u) => u !== currentUser)
     .filter((u) => {
@@ -667,7 +707,7 @@ function sendTextMessage() {
 
   const msg = messageInputEl.value.trim();
 
-  if (!selectedUser) {
+  if (!selectedUser && !editingId) { // If editing, selectedUser might not be relevant for the message target
     alert("Select a user first");
     return;
   }
@@ -675,15 +715,32 @@ function sendTextMessage() {
   if (!msg) return;
 
   socket.emit("privateMessage", {
-    to: selectedUser,
-    message: msg,
-    type: "text"
+    to: selectedUser, // Target user for new message
+    message: msg, // Message content
+    type: "text", // Message type
+    ...(editingId && { messageId: editingId }), // Include messageId if editing
+    ...(replyingToMsg && { replyTo: replyingToMsg._id })
   });
 
   messageInputEl.value = "";
   storeDraft("");
-  onComposerInput();
+  onComposerInputAndResize();
   emitTypingSignal(false);
+
+  if (replyingToMsg) {
+    exitReplyMode();
+  }
+
+  if (editingId) {
+    exitEditMode();
+  }
+}
+
+function updateMessageInUI(message) {
+  const bubble = document.querySelector(`[data-mid='${message._id}'] .message-content`);
+  if (bubble) {
+    bubble.textContent = `${message.message} (edited)`;
+  }
 }
 
 function setTypingIndicatorState(visible) {
@@ -809,10 +866,36 @@ function buildMessageRow(message) {
   const bubble = document.createElement("div");
   bubble.className = `message-bubble ${message.from === currentUser ? "message-user" : "message-assistant"}`;
 
+  // Render Reply Preview
+  if (message.replyTo) {
+    const chatUser = getConversationUserFromMessage(message);
+    const entry = getConversationCache(chatUser);
+    const parent = entry?.messages?.find(m => m._id === message.replyTo);
+    
+    const replyPreview = document.createElement("div");
+    replyPreview.style.cssText = "margin-bottom: 8px; padding: 6px 8px; border-left: 3px solid var(--brand); background: rgba(0,0,0,0.1); border-radius: 4px; font-size: 0.75rem; cursor: pointer; color: inherit;";
+    
+    const sender = parent ? `@${parent.from}` : "Original message";
+    const snippet = parent ? (parent.message || (parent.type === 'image' ? 'Photo' : 'Video')) : "Click to view context";
+    
+    replyPreview.innerHTML = `
+      <div style="font-weight: bold; opacity: 0.8;">${sender}</div>
+      <div style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: 0.7;">${escapeHtml(snippet)}</div>
+    `;
+    
+    replyPreview.onclick = (e) => {
+       e.stopPropagation();
+       const target = document.querySelector(`[data-mid='${message.replyTo}']`);
+       if (target) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    };
+    bubble.appendChild(replyPreview);
+  }
+
   const content = document.createElement("div");
   content.className = "message-content";
   const isMediaMessage = message.type === "image" || message.type === "video";
 
+  // Media content
   if (isMediaMessage) {
     bubble.classList.add("message-media-bubble");
     content.classList.add("message-media-content");
@@ -843,41 +926,84 @@ function buildMessageRow(message) {
   meta.textContent = formatTime(message.timestamp);
 
   bubble.appendChild(content);
+
+  const reactionsContainer = document.createElement("div");
+  reactionsContainer.className = "message-reactions";
+  bubble.appendChild(reactionsContainer);
+  renderReactions(row, message.reactions || []);
+
   bubble.appendChild(meta);
 
-  if (message.from === currentUser) {
-    const actions = document.createElement("div");
-    actions.className = "message-actions";
+  // Context Menu Event Listeners (Right-click & Long-press)
+  bubble.addEventListener("contextmenu", (e) => {
+    e.preventDefault();
+    showContextMenu(message, e.pageX, e.pageY, bubble);
+  });
 
-    const menuBtn = document.createElement("button");
-    menuBtn.textContent = "\u22EE";
-    menuBtn.className = "tiny-menu-btn";
-    menuBtn.onclick = (event) => {
-      event.stopPropagation();
-      closeAllMessageMenus();
-      menu.classList.toggle("hidden");
-    };
-
-    const menu = document.createElement("div");
-    menu.className = "message-menu hidden";
-
-    const deleteBtn = document.createElement("button");
-    deleteBtn.textContent = "Delete";
-    deleteBtn.className = "menu-item danger-item";
-    deleteBtn.onclick = (event) => {
-      event.stopPropagation();
-      menu.classList.add("hidden");
-      socket.emit("deleteMessage", { messageId: message._id });
-    };
-
-    actions.appendChild(menuBtn);
-    menu.appendChild(deleteBtn);
-    actions.appendChild(menu);
-    bubble.appendChild(actions);
-  }
+  bubble.addEventListener("touchstart", (e) => {
+    longPressTimer = setTimeout(() => showContextMenu(message, e.touches[0].pageX, e.touches[0].pageY, bubble), 500);
+  }, { passive: true });
+  bubble.addEventListener("touchend", () => clearTimeout(longPressTimer));
+  bubble.addEventListener("touchmove", () => clearTimeout(longPressTimer));
 
   row.appendChild(bubble);
   return row;
+}
+
+function showContextMenu(message, x, y, bubbleEl) {
+  // Only show edit/delete for own text messages
+  const isMyMessage = message.from === currentUser;
+  const isTextMessage = message.type === "text";
+
+  ctxEditBtn.style.display = (isMyMessage && isTextMessage) ? "flex" : "none";
+  ctxDeleteBtn.style.display = isMyMessage ? "flex" : "none";
+  ctxCopyBtn.style.display = isTextMessage ? "flex" : "none";
+  ctxReplyBtn.style.display = "flex";
+
+  // Position the context menu
+  messageContextMenu.style.left = `${Math.min(x, window.innerWidth - 190)}px`;
+  messageContextMenu.style.top = `${Math.min(y, window.innerHeight - 150)}px`;
+  messageContextMenu.classList.add("active");
+
+  // Handle Emoji reactions
+  messageContextMenu.querySelectorAll(".emoji-btn").forEach(btn => {
+    btn.onclick = () => {
+      socket.emit("reactToMessage", { messageId: message._id, emoji: btn.dataset.emoji });
+      hideContextMenu();
+    };
+  });
+
+  // Attach event handlers
+  ctxEditBtn.onclick = () => {
+    hideContextMenu();
+    enterEditMode(message);
+  };
+
+  ctxReplyBtn.onclick = () => {
+    hideContextMenu();
+    enterReplyMode(message);
+  };
+
+  ctxForwardBtn.onclick = () => {
+    hideContextMenu();
+    openForwardModal(message);
+  };
+
+  ctxCopyBtn.onclick = () => {
+    hideContextMenu();
+    if (message.message) navigator.clipboard.writeText(message.message);
+  };
+
+  ctxDeleteBtn.onclick = () => {
+    hideContextMenu();
+    if (confirm("Are you sure you want to delete this message?")) {
+      socket.emit("deleteMessage", { messageId: message._id });
+    }
+  };
+}
+
+function hideContextMenu() {
+  messageContextMenu.classList.remove("active");
 }
 
 function renderHistoryNotice(text) {
@@ -909,14 +1035,6 @@ function pinToLatestMessage() {
     const oncePin = () => scrollToBottom();
     node.addEventListener("load", oncePin, { once: true });
     node.addEventListener("loadedmetadata", oncePin, { once: true });
-  });
-}
-
-init();
-
-function closeAllMessageMenus() {
-  document.querySelectorAll(".message-menu").forEach((menu) => {
-    menu.classList.add("hidden");
   });
 }
 
@@ -970,14 +1088,14 @@ function onUserSearchInput(event) {
   renderUsers();
 }
 
-function onComposerInput() {
+function onComposerInputAndResize() {
   autoResizeComposer();
   const messageLength = messageInputEl.value.trim().length;
   const helperText = mobileTabletQuery.matches
     ? `${messageLength} chars`
     : `Enter to send, Shift+Enter for new line - ${messageLength} chars`;
   composerMetaEl.textContent = helperText;
-  storeDraft(messageInputEl.value);
+  if (!editingId) storeDraft(messageInputEl.value); // Don't save draft while editing
 
   if (!selectedUser) return;
 
@@ -1001,10 +1119,116 @@ function onComposerInput() {
 
 function onComposerKeydown(event) {
   if (event.key !== "Enter") return;
-  if (event.shiftKey) return;
-  if (mobileTabletQuery.matches) return;
-  event.preventDefault();
-  sendTextMessage();
+  if (event.shiftKey) {
+    // Allow new line with Shift+Enter
+    return;
+  }
+  if (event.key === "Escape") {
+    if (editingId) exitEditMode();
+    return;
+  }
+
+  // Prevent default Enter behavior (new line) and send message
+  if (!mobileTabletQuery.matches) {
+    event.preventDefault();
+    sendTextMessage();
+  }
+}
+
+function enterEditMode(message) {
+  editingId = message._id;
+  messageInputEl.value = message.message;
+  messageInputEl.focus();
+  editIndicator.classList.remove("hidden");
+  messageInputEl.classList.add("rounded-t-none"); // Add class for styling
+  onComposerInputAndResize(); // Adjust textarea height and update char count
+}
+
+function enterReplyMode(message) {
+  replyingToMsg = message;
+  if (editingId) exitEditMode();
+  replyTargetUser.textContent = `@${message.from}`;
+  replyTargetText.textContent = message.message || (message.type === 'image' ? 'Photo' : 'Video');
+  replyIndicator.classList.remove("hidden");
+  messageInputEl.classList.add("rounded-t-none");
+  messageInputEl.focus();
+}
+
+function openForwardModal(message) {
+  currentForwardMessage = message;
+  forwardModal.classList.add("open");
+  
+  const usernames = Object.keys(usersPresence).filter(u => u !== currentUser);
+  
+  forwardUserList.innerHTML = usernames.map(u => {
+    const user = usersPresence[u];
+    const avatar = user?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || u)}&background=1d4ed8&color=fff`;
+    return `
+      <div class="share-user-item" onclick="window.__forwardToUser('${escapeHtml(u)}')">
+        <img class="share-user-avatar" src="${escapeHtml(avatar)}">
+        <span class="share-user-name">@${escapeHtml(u)}</span>
+      </div>
+    `;
+  }).join("");
+}
+
+window.__forwardToUser = (targetUsername) => {
+  if (!currentForwardMessage) return;
+  const content = currentForwardMessage.message || (currentForwardMessage.type === 'image' ? '[Image]' : '[Video]');
+  const msg = `Forwarded message:\n${content}`;
+  
+  closeForwardModal();
+  
+  const nameText = usersPresence[targetUsername]?.name 
+    ? `${usersPresence[targetUsername].name} (@${targetUsername})` 
+    : `@${targetUsername}`;
+    
+  openConversation(targetUsername, nameText);
+  messageInputEl.value = msg;
+  onComposerInputAndResize();
+};
+
+function closeForwardModal() {
+  forwardModal.classList.remove("open");
+  currentForwardMessage = null;
+}
+
+function exitReplyMode() {
+  replyingToMsg = null;
+  replyIndicator.classList.add("hidden");
+  messageInputEl.classList.remove("rounded-t-none");
+}
+
+function renderReactions(rowEl, reactions = []) {
+  const container = rowEl.querySelector(".message-reactions");
+  if (!container) return;
+  container.innerHTML = "";
+  
+  reactions.forEach(r => {
+    const isMyReaction = r.usernames.includes(currentUser);
+    const badge = document.createElement("div");
+    badge.className = `reaction-badge ${isMyReaction ? "mine" : ""}`;
+    badge.innerHTML = `<span>${r.emoji}</span> <span>${r.usernames.length}</span>`;
+    badge.title = r.usernames.join(", ");
+    
+    badge.onclick = (e) => {
+      e.stopPropagation();
+      socket.emit("reactToMessage", { 
+        messageId: rowEl.dataset.mid, 
+        emoji: r.emoji 
+      });
+    };
+    
+    container.appendChild(badge);
+  });
+}
+
+function exitEditMode() {
+  editingId = null;
+  messageInputEl.value = "";
+  editIndicator.classList.add("hidden");
+  messageInputEl.classList.remove("rounded-t-none"); // Remove class for styling
+  onComposerInputAndResize(); // Reset textarea height and char count
 }
 
 function autoResizeComposer() {
@@ -1022,6 +1246,7 @@ function openConversation(username, nameText) {
   selectedUser = username;
   window.__chatSelectedUser = username;
   setTypingIndicatorState(false);
+  exitReplyMode();
   chatHasMoreHistory = false;
   chatHistoryLoading = true;
   chatOldestTimestamp = "";
@@ -1128,7 +1353,7 @@ function onMessagesScroll() {
 }
 
 function updateComposerMeta() {
-  onComposerInput();
+  onComposerInputAndResize();
 }
 
 function draftStorageKey() {
@@ -1144,7 +1369,7 @@ function restoreDraft() {
   if (!selectedUser) return;
   const draft = localStorage.getItem(draftStorageKey()) || "";
   messageInputEl.value = draft;
-  onComposerInput();
+  onComposerInputAndResize();
 }
 
 function persistLastChat() {
@@ -1311,4 +1536,5 @@ function hydrateConversationCache() {
     // Ignore malformed cache payloads.
   }
 }
+
 })();

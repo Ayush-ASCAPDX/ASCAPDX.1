@@ -9,6 +9,105 @@
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="icon" href="/favicon.ico">
   <link rel="stylesheet" href="/style.css">
+  <style>
+    /* Context Menu Styles - Added for chat messages */
+    .context-menu {
+      position: fixed; display: none; z-index: 2500;
+      background: var(--surface); border: 1px solid var(--line);
+      border-radius: 16px; padding: 8px; min-width: 180px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+    .context-menu.active { display: block; }
+    .context-item {
+      width: 100%; display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px; border: none; background: transparent;
+      color: var(--text); cursor: pointer; border-radius: 10px;
+      font-size: 0.9rem; text-align: left; transition: background 0.2s;
+    }
+    .context-item:hover { background: var(--surface-2); }
+    .context-item.danger { color: #ff4b4b; }
+    .context-item.danger:hover { background: rgba(255, 75, 75, 0.1); }
+
+    
+    /* Context Emoji Bar */
+    .context-emoji-bar {
+      display: flex;
+      justify-content: space-between;
+      gap: 4px;
+      padding: 4px 4px 8px;
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 4px;
+    }
+    .emoji-btn {
+      background: none; border: none; font-size: 1.2rem;
+      cursor: pointer; padding: 4px; border-radius: 8px;
+      transition: transform 0.1s, background 0.2s;
+    }
+    .emoji-btn:hover { transform: scale(1.2); background: var(--surface-2); }
+
+    /* Edit Indicator */
+    #editIndicator {
+      grid-area: meta;
+      display: flex; justify-content: space-between; align-items: center;
+      background: var(--surface-2); padding: 6px 12px;
+      border-radius: 12px; font-size: 0.75rem; color: var(--brand);
+      border: 1px solid var(--line); margin-bottom: 6px;
+    }
+    #replyIndicator {
+      grid-area: meta;
+      display: flex; justify-content: space-between; align-items: center;
+      background: var(--surface-2); padding: 6px 12px;
+      border-radius: 12px; font-size: 0.75rem;
+      border: 1px solid var(--line); margin-bottom: 6px;
+    }
+
+    /* Message Reactions UI */
+    .message-reactions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-top: 6px;
+    }
+    .reaction-badge {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      background: var(--surface-2);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 2px 6px;
+      font-size: 0.7rem;
+      cursor: pointer;
+      transition: transform 0.1s;
+      color: var(--text);
+    }
+    .reaction-badge:hover { transform: scale(1.1); }
+    .reaction-badge.mine { border-color: var(--brand); background: rgba(37, 99, 235, 0.1); }
+
+    /* Forward Modal Styles */
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(2, 10, 25, 0.85); backdrop-filter: blur(8px);
+      display: none; align-items: center; justify-content: center; z-index: 3000; padding: 16px;
+    }
+    .modal-backdrop.open { display: flex; }
+    .share-modal {
+      width: min(420px, 100%); background: var(--surface); border: 1px solid var(--line); border-radius: 28px;
+      padding: 24px; color: var(--text); box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+    }
+    .modal-title { margin: 0 0 16px; font-size: 1.5rem; font-weight: 800; letter-spacing: -0.02em; }
+    .share-label { font-size: 0.8rem; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; font-weight: 700; letter-spacing: 0.05em; }
+    .share-user-list { max-height: 240px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding-right: 6px; }
+    .share-user-list::-webkit-scrollbar { width: 4px; }
+    .share-user-list::-webkit-scrollbar-thumb { background: var(--line); border-radius: 10px; }
+    .share-user-item { 
+      display: flex; align-items: center; gap: 12px; padding: 10px; border-radius: 16px; 
+      cursor: pointer; transition: all 0.2s; border: 1px solid transparent; background: rgba(255,255,255,0.02);
+    }
+    .share-user-item:hover { background: var(--surface-2); border-color: var(--line); transform: translateX(4px); }
+    .share-user-avatar { width: 36px; height: 36px; border-radius: 999px; object-fit: cover; border: 1px solid var(--line); }
+    .share-user-name { font-weight: 600; font-size: 0.95rem; color: var(--text); }
+    .modal-btn { width: 100%; border: none; border-radius: 16px; padding: 14px; cursor: pointer; font-weight: 700; font-size: 1rem; background: var(--surface-2); border: 1px solid var(--line); color: var(--text); }
+  </style>
 </head>
 <body class="chat-page">
 <div class="app-shell">
@@ -16,7 +115,7 @@
     <div class="sidebar-title chat-sidebar-title">
       <span class="chat-sidebar-brand">ASCAPDX Chat</span>
     </div>
-    <div class="sidebar-user" id="currentUser" style="display: none;"></div>
+    <div class="sidebar-user" id="currentUser"></div>
     <div class="sidebar-search-wrap">
       <input id="userSearchInput" class="sidebar-search" type="search" placeholder="Search chats..." aria-label="Search chats">
     </div>
@@ -61,6 +160,17 @@
     </div>
 
     <div class="chat-input">
+      <div id="editIndicator" class="hidden">
+        <span>✏️ Editing Message</span>
+        <button id="cancelEditBtn" style="background:none;border:none;color:var(--brand);cursor:pointer;font-weight:bold;font-size:0.7rem;">Cancel</button>
+      </div>
+      <div id="replyIndicator" class="hidden">
+        <div style="display:flex; flex-direction:column; min-width:0; flex:1;">
+          <span id="replyTargetUser" style="font-size:0.7rem; color:var(--brand); font-weight:bold;"></span>
+          <span id="replyTargetText" style="font-size:0.75rem; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"></span>
+        </div>
+        <button id="cancelReplyBtn" style="background:none;border:none;color:var(--brand);cursor:pointer;font-weight:bold;font-size:0.7rem;">Cancel</button>
+      </div>
       <button id="attachBtn" class="attach-btn" title="Send image/video">+</button>
       <input type="file" id="fileInput" accept="image/*,video/*" hidden>
       <div id="fileLoader" class="file-loader hidden" aria-live="polite">
@@ -74,6 +184,34 @@
   </div>
 </div>
 
+<!-- Message Context Menu -->
+<div id="messageContextMenu" class="context-menu" aria-hidden="true">
+  <div class="context-emoji-bar">
+    <button class="emoji-btn" data-emoji="👍">👍</button>
+    <button class="emoji-btn" data-emoji="❤️">❤️</button>
+    <button class="emoji-btn" data-emoji="😂">😂</button>
+    <button class="emoji-btn" data-emoji="😮">😮</button>
+    <button class="emoji-btn" data-emoji="😢">😢</button>
+    <button class="emoji-btn" data-emoji="🔥">🔥</button>
+  </div>
+  <button class="context-item" id="ctxReplyBtn">
+    <span>↩️</span> <span>Reply</span>
+  </button>
+  <button class="context-item" id="ctxForwardBtn">
+    <span>➦</span> <span>Forward</span>
+  </button>
+  <button class="context-item" id="ctxEditBtn">
+    <span>✏️</span> <span>Edit Message</span>
+  </button>
+  <button class="context-item" id="ctxCopyBtn">
+    <span>📋</span> <span>Copy Text</span>
+  </button>
+  <button class="context-item danger" id="ctxDeleteBtn">
+    <span>🗑️</span> <span>Delete Message</span>
+  </button>
+</div>
+
+
 <script src="/socket.io/socket.io.js" defer></script>
 <script src="/auth.js" defer></script>
 <script src="/pwa.js" defer></script>
@@ -83,4 +221,3 @@
 <script src="/notifications-loader.js" defer></script>
 </body>
 </html>
-

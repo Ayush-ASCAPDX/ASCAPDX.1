@@ -39,6 +39,11 @@
     setTimeout(() => {
       document.body.classList.remove("route-finished");
     }, 600);
+    
+    // Safety: ensure the animation class is removed if stuck
+    if (document.body.classList.contains("page-exit")) {
+       document.body.classList.remove("page-exit");
+    }
   }
 
   function isInternalNavigableAnchor(anchor) {
@@ -172,25 +177,47 @@
       const scripts = newDoc.querySelectorAll("script");
       scripts.forEach((oldScript) => {
         const newScript = document.createElement("script");
-        Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
+        Array.from(oldScript.attributes).forEach(attr => {
+          // Prevent re-injecting the SPA loader and mobile nav to avoid redundant logic or loops
+          if (attr.name === 'src' && (attr.value.includes('nav-loader.js') || attr.value.includes('mobile-nav.js'))) return;
+          newScript.setAttribute(attr.name, attr.value);
+        });
         if (oldScript.src) {
           newScript.src = oldScript.src;
+          newScript.async = false;
         } else {
           newScript.textContent = oldScript.textContent;
         }
         document.body.appendChild(newScript);
       });
 
-      // Trigger entrance animation (fade-in)
-      requestAnimationFrame(() => {
-        document.body.classList.remove("page-exit");
-      });
+      // Initialize the new page content
+      triggerPageInit(url);
     } catch (error) {
       console.error("SPA Navigation failed, falling back to refresh:", error);
       window.location.href = url;
     } finally {
       stopLoader();
     }
+  }
+
+  function triggerPageInit(url) {
+    const path = new URL(url, window.location.origin).pathname;
+    // Recognize '/', '/index.html', and '/chat' as the home/chat page
+    const isChatPage = path === "/" || path === "/index.html" || path.includes("/chat");
+
+    // Trigger entrance animation (fade-in)
+    requestAnimationFrame(() => {
+      document.body.classList.remove("page-exit");
+      // Call specific init functions after scripts have been appended to the DOM
+      if (window.initChatPage && isChatPage) {
+        window.initChatPage();
+      }
+      if (window.initFeedPage && path.includes("/feed")) {
+        window.initFeedPage();
+      }
+      // Add other page-specific init calls here if needed (e.g., window.initProfilePage())
+    });
   }
 
   // Handle back/forward browser buttons

@@ -1,4 +1,4 @@
-(async function initFeedPage() {
+window.initFeedPage = async function() { // Expose init as a global function
   const me = await requireAuth();
   if (!me) return;
 
@@ -9,6 +9,12 @@
   const shareUserList = document.getElementById("shareUserList");
   const closeShareModalBtn = document.getElementById("closeShareModalBtn");
   let allUsers = [];
+
+  const contextMenu = document.getElementById("postContextMenu");
+  const ctxLikeBtn = document.getElementById("ctxLike");
+  const ctxShareBtn = document.getElementById("ctxShare");
+  const ctxCopyLinkBtn = document.getElementById("ctxCopyLink");
+  const ctxDeleteBtn = document.getElementById("ctxDelete");
   let currentSharingPost = null;
 
   function escapeHtml(text) {
@@ -64,6 +70,66 @@
     currentSharingPost = null;
   }
 
+  let longPressTimer = null;
+  function showContextMenu(post, x, y, cardEl) {
+    currentSharingPost = post;
+    contextMenu.style.left = `${Math.min(x, window.innerWidth - 190)}px`;
+    contextMenu.style.top = `${Math.min(y, window.innerHeight - 150)}px`;
+    contextMenu.classList.add("active");
+
+    const likeBtn = cardEl.querySelector(".like-btn");
+    const isLiked = likeBtn.classList.contains("liked");
+    document.getElementById("ctxLikeText").textContent = isLiked ? "Unlike Post" : "Like Post";
+
+    ctxLikeBtn.onclick = () => {
+      hideContextMenu();
+      likeBtn.click();
+    };
+
+    ctxShareBtn.onclick = () => {
+      hideContextMenu();
+      openShareModal(post);
+    };
+
+    ctxCopyLinkBtn.onclick = () => {
+      hideContextMenu();
+      const url = window.location.origin + `/user-profile?username=${encodeURIComponent(post.username)}`;
+      navigator.clipboard.writeText(url);
+      alert("Link copied!");
+    };
+
+    if (post.username === me.username) {
+      ctxDeleteBtn.style.display = "flex";
+      ctxDeleteBtn.onclick = async () => {
+        hideContextMenu();
+        if (!confirm("Are you sure you want to delete this post?")) return;
+        try {
+          const res = await authFetch(`/api/posts/${post._id}`, { method: "DELETE" });
+          if (res.ok) {
+            cardEl.remove();
+          } else {
+            const data = await res.json();
+            alert(data.error || "Failed to delete post.");
+          }
+        } catch (err) {
+          alert("Error deleting post.");
+        }
+      };
+    } else {
+      ctxDeleteBtn.style.display = "none";
+    }
+  }
+
+  function hideContextMenu() {
+    contextMenu.classList.remove("active");
+  }
+
+  document.addEventListener("click", (e) => {
+    if (!contextMenu.contains(e.target)) hideContextMenu();
+  });
+
+  window.addEventListener("scroll", hideContextMenu);
+
   function buildPostElement(post) {
     const div = document.createElement("div");
     div.className = "post-card";
@@ -92,6 +158,18 @@
         </button>
       </div>
     `;
+
+    // Context Menu Event Listeners (Right-click & Long-press)
+    div.addEventListener("contextmenu", (e) => {
+      e.preventDefault();
+      showContextMenu(post, e.pageX, e.pageY, div);
+    });
+
+    div.addEventListener("touchstart", (e) => {
+      longPressTimer = setTimeout(() => showContextMenu(post, e.touches[0].pageX, e.touches[0].pageY, div), 500);
+    }, { passive: true });
+    div.addEventListener("touchend", () => clearTimeout(longPressTimer));
+    div.addEventListener("touchmove", () => clearTimeout(longPressTimer));
 
     // Use SPA navigation for the author link
     div.querySelector(".post-author").onclick = (e) => {
@@ -142,4 +220,4 @@
   } catch (err) {
     statusEl.textContent = "Failed to load feed.";
   }
-})();
+}; // No longer an IIFE, just defines the global function

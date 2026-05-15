@@ -87,19 +87,19 @@
     updateInstallButton();
   });
 
-  if (!installBtn) return;
-
-  installBtn.addEventListener("click", async () => {
-    if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    try {
-      await deferredPrompt.userChoice;
-    } catch (_error) {
-      // Ignore; button state still gets reset below.
-    }
-    deferredPrompt = null;
-    updateInstallButton();
-  });
+  if (installBtn) {
+    installBtn.addEventListener("click", async () => {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      try {
+        await deferredPrompt.userChoice;
+      } catch (_error) {
+        // Ignore; button state still gets reset below.
+      }
+      deferredPrompt = null;
+      updateInstallButton();
+    });
+  }
 
   updateInstallButton();
 })();

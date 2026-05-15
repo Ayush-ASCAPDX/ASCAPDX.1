@@ -644,6 +644,19 @@ app.post("/api/posts", authMiddleware, async (req, res) => {
   }
 });
 
+app.delete("/api/posts/:id", authMiddleware, async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.id);
+    if (!post) return res.status(404).json({ error: "Post not found" });
+    if (post.username !== req.user.username) return res.status(403).json({ error: "Unauthorized" });
+
+    await Post.deleteOne({ _id: req.params.id });
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to delete post" });
+  }
+});
+
 app.put("/api/profile", authMiddleware, async (req, res) => {
   try {
     const name = (req.body.name || "").trim();
@@ -1139,7 +1152,9 @@ io.on("connection", async (socket) => {
         type,
         message: text || (type === "text" ? "" : " "),
         mediaUrl,
-        seen: false
+        seen: false,
+        replyTo: data.replyTo || null,
+        reactions: []
       };
 
       const saved = await Message.create(payload);
@@ -1224,6 +1239,40 @@ io.on("connection", async (socket) => {
 
     emitToUser(withUser, "conversationDeleted", { withUser: username });
     emitToUser(username, "conversationDeleted", { withUser });
+  });
+
+  socket.on("reactToMessage", async ({ messageId, emoji }) => {
+    if (!messageId || !emoji) return;
+    try {
+      const message = await Message.findById(messageId);
+      if (!message) return;
+      // Security: ensure the user is part of this conversation
+      if (message.from !== username && message.to !== username) return;
+
+      if (!message.reactions) message.reactions = [];
+      let reaction = message.reactions.find(r => r.emoji === emoji);
+
+      if (reaction) {
+        const userIndex = reaction.usernames.indexOf(username);
+        if (userIndex > -1) {
+          reaction.usernames.splice(userIndex, 1);
+          if (reaction.usernames.length === 0) {
+            message.reactions = message.reactions.filter(r => r.emoji !== emoji);
+          }
+        } else {
+          reaction.usernames.push(username);
+        }
+      } else {
+        message.reactions.push({ emoji, usernames: [username] });
+      }
+
+      await message.save();
+      const payload = { messageId: message._id, reactions: message.reactions };
+      emitToUser(message.from, "messageReacted", payload);
+      emitToUser(message.to, "messageReacted", payload);
+    } catch (error) {
+      console.error("Error reacting to message:", error);
+    }
   });
 
   socket.on("video-offer", ({ to, offer, callId }) => {
