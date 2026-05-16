@@ -1,6 +1,18 @@
 window.initFeedPage = async function() {
-  const me = await requireAuth();
-  if (!me) return;
+  const initToken = Symbol("feedInit");
+  window.__feedInitToken = initToken;
+
+  if (!getToken()) {
+    window.location.href = "/";
+    return;
+  }
+
+  let me = getUser() || {};
+  const authPromise = requireAuth();
+  const postsPromise = authFetch("/api/posts").then(async (res) => {
+    if (!res.ok) throw new Error("Failed to load posts");
+    return res.json();
+  });
 
   const feedContainer = document.getElementById("feedContainer");
   const headerAvatar = document.getElementById("headerUserAvatar");
@@ -16,13 +28,48 @@ window.initFeedPage = async function() {
 
   if (!feedContainer || !statusEl) return;
 
-  if (headerAvatar) {
+  if (window.__feedAbortController) window.__feedAbortController.abort();
+  const feedAbortController = new AbortController();
+  window.__feedAbortController = feedAbortController;
+
+  if (headerAvatar && me.username) {
     headerAvatar.src = me.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(me.username)}&background=15324f&color=d3e3ff`;
   }
 
   let allUsers = [];
   let currentSharingPost = null;
   let longPressTimer = null;
+
+  function showPostSkeletons() {
+    statusEl.style.display = "none";
+    feedContainer.innerHTML = Array.from({ length: 3 }, (_, index) => `
+      <article class="glass-card feed-card skeleton-card" aria-hidden="true">
+        <div class="feed-card-head">
+          <div class="feed-author">
+            <div class="skeleton-avatar"></div>
+            <div class="min-w-0 flex-1">
+              <div class="skeleton-line is-title"></div>
+              <div class="skeleton-line is-meta"></div>
+            </div>
+          </div>
+          <div class="skeleton-line" style="width: 36px; height: 36px;"></div>
+        </div>
+        <div class="feed-body">
+          <div class="skeleton-line is-body"></div>
+          <div class="skeleton-line is-body"></div>
+          <div class="skeleton-line is-body is-short"></div>
+        </div>
+        ${index === 0 ? '<div class="skeleton-media"></div>' : ''}
+        <div class="skeleton-actions">
+          <div class="skeleton-action"></div>
+          <div class="skeleton-action"></div>
+          <div class="skeleton-action"></div>
+        </div>
+      </article>
+    `).join("");
+  }
+
+  showPostSkeletons();
 
   function escapeHtml(text) {
     const div = document.createElement("div");
@@ -253,8 +300,8 @@ window.initFeedPage = async function() {
 
   document.addEventListener("click", (event) => {
     if (contextMenu && !contextMenu.contains(event.target)) hideContextMenu();
-  });
-  window.addEventListener("scroll", hideContextMenu);
+  }, { signal: feedAbortController.signal });
+  window.addEventListener("scroll", hideContextMenu, { signal: feedAbortController.signal });
 
   if (closeShareModalBtn) closeShareModalBtn.onclick = closeShareModal;
   if (shareModal) {
@@ -274,8 +321,14 @@ window.initFeedPage = async function() {
   }
 
   try {
-    const res = await authFetch("/api/posts");
-    const posts = await res.json();
+    const [freshMe, posts] = await Promise.all([authPromise, postsPromise]);
+    if (window.__feedInitToken !== initToken) return;
+    if (!freshMe) return;
+
+    me = freshMe;
+    if (headerAvatar) {
+      headerAvatar.src = me.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(me.username)}&background=15324f&color=d3e3ff`;
+    }
 
     statusEl.style.display = "none";
     feedContainer.innerHTML = "";
@@ -293,3 +346,14 @@ window.initFeedPage = async function() {
     statusEl.innerHTML = '<p class="text-lg italic">Failed to load feed.</p>';
   }
 };
+
+function startFeedPageWhenReady() {
+  if (!location.pathname.includes("/feed")) return;
+  if (window.initFeedPage) window.initFeedPage();
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", startFeedPageWhenReady, { once: true });
+} else {
+  startFeedPageWhenReady();
+}

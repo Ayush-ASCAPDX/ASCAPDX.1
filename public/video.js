@@ -82,6 +82,15 @@ function setStatus(message) {
   setDebug("status", message);
 }
 
+function setControlButton(button, icon, label, ariaLabel = label) {
+  if (!button) return;
+  button.setAttribute("aria-label", ariaLabel);
+  button.innerHTML = `
+    <span class="material-symbols-outlined">${icon}</span>
+    <span class="video-control-label">${label}</span>
+  `;
+}
+
 function setCallState(state) {
   const labels = {
     idle: "Idle",
@@ -460,8 +469,8 @@ function cleanupCall(options = {}) {
   activeCallId = "";
   isMuted = false;
   isCameraOff = false;
-  muteBtn.textContent = "Mic On";
-  cameraBtn.textContent = "Cam On";
+  setControlButton(muteBtn, "mic", "Mic On", "Microphone on");
+  setControlButton(cameraBtn, "videocam", "Cam On", "Camera on");
   updateLocalMediaLabel();
   updateTargetLabel();
 
@@ -598,8 +607,8 @@ function applyTrackState() {
       track.enabled = !isCameraOff;
     });
   }
-  muteBtn.textContent = isMuted ? "Mic Off" : "Mic On";
-  cameraBtn.textContent = isCameraOff ? "Cam Off" : "Cam On";
+  setControlButton(muteBtn, isMuted ? "mic_off" : "mic", isMuted ? "Mic Off" : "Mic On", isMuted ? "Microphone off" : "Microphone on");
+  setControlButton(cameraBtn, isCameraOff ? "videocam_off" : "videocam", isCameraOff ? "Cam Off" : "Cam On", isCameraOff ? "Camera off" : "Camera on");
   updateLocalMediaLabel();
 }
 

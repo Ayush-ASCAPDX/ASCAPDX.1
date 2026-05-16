@@ -236,7 +236,21 @@ async function prepareUploadPayload(file) {
 }
 
 async function init() {
+  if (window.__chatPageAbortController) {
+    window.__chatPageAbortController.abort();
+  }
+  const initAbortController = new AbortController();
+  window.__chatPageAbortController = initAbortController;
+  window.__chatInitId = (window.__chatInitId || 0) + 1;
+  const initId = window.__chatInitId;
+  const eventOptions = { signal: initAbortController.signal };
+  const listen = (target, type, handler, options = {}) => {
+    if (!target) return;
+    target.addEventListener(type, handler, { ...options, signal: initAbortController.signal });
+  };
+
   const me = await requireAuth();
+  if (window.__chatPageAbortController !== initAbortController) return;
   // Assign DOM elements to module-scoped variables
   usersListEl = document.getElementById("usersList");
   currentUserEl = document.getElementById("currentUser");
@@ -302,7 +316,9 @@ async function init() {
   });
 
   socket.on("chatHistory", ({ withUser = "", before = "", messages = [], hasMore = false } = {}) => {
-    if (!selectedUser || withUser !== selectedUser) return;
+    if (window.__chatInitId !== initId) return;
+    const activeChatUser = getActiveChatUser();
+    if (!activeChatUser || withUser !== activeChatUser) return;
 
     const loadingOlder = !!before;
     chatHistoryLoading = false;
@@ -364,6 +380,7 @@ async function init() {
   });
 
   socket.on("privateMessage", (message) => {
+    if (window.__chatInitId !== initId) return;
     const chatUser = getConversationUserFromMessage(message);
     if (chatUser) {
       updateConversationCache(chatUser, (entry) => {
@@ -378,9 +395,10 @@ async function init() {
       });
     }
 
+    const activeChatUser = getActiveChatUser();
     const inOpenChat =
-      (message.from === selectedUser && message.to === currentUser) ||
-      (message.from === currentUser && message.to === selectedUser);
+      (message.from === activeChatUser && message.to === currentUser) ||
+      (message.from === currentUser && message.to === activeChatUser);
 
     if (inOpenChat) {
       removeEmptyState();
@@ -426,11 +444,11 @@ async function init() {
     setTypingIndicatorState(Boolean(typing));
   });
 
-  if (sendBtn) sendBtn.addEventListener("click", sendTextMessage);
+  listen(sendBtn, "click", sendTextMessage);
   if (messageInputEl) {
-    messageInputEl.addEventListener("input", onComposerInputAndResize);
-    messageInputEl.addEventListener("keydown", onComposerKeydown);
-    messageInputEl.addEventListener("blur", () => {
+    listen(messageInputEl, "input", onComposerInputAndResize);
+    listen(messageInputEl, "keydown", onComposerKeydown);
+    listen(messageInputEl, "blur", () => {
       if (!selectedUser) return;
       emitTypingSignal(false);
       if (typingStatus.timeoutId) {
@@ -440,72 +458,74 @@ async function init() {
       if (editingId) exitEditMode();
     });
   }
-  if (userSearchInput) userSearchInput.addEventListener("input", onUserSearchInput);
-  if (scrollToBottomBtn) scrollToBottomBtn.addEventListener("click", () => scrollToBottom(true));
-  if (messagesEl) messagesEl.addEventListener("scroll", onMessagesScroll);
+  listen(userSearchInput, "input", onUserSearchInput);
+  listen(scrollToBottomBtn, "click", () => scrollToBottom(true));
+  listen(messagesEl, "scroll", onMessagesScroll);
   
   const setBtn = document.getElementById("settingsBtn");
-  if (setBtn) setBtn.addEventListener("click", () => {
+  listen(setBtn, "click", () => {
     if (window.navigateTo) window.navigateTo("/settings"); else window.location.href = "/settings";
   });
   
   const profBtn = document.getElementById("profileBtn");
-  if (profBtn) profBtn.addEventListener("click", () => {
+  listen(profBtn, "click", () => {
     if (window.navigateTo) window.navigateTo("/profile"); else window.location.href = "/profile";
   });
 
   const grpBtn = document.getElementById("groupsBtn");
-  if (grpBtn) grpBtn.addEventListener("click", () => {
+  listen(grpBtn, "click", () => {
     if (window.navigateTo) window.navigateTo("/groups"); else window.location.href = "/groups";
   });
 
   const logBtn = document.getElementById("logoutBtn");
-  if (logBtn) logBtn.addEventListener("click", logout);
+  listen(logBtn, "click", logout);
 
   if (attachBtn) {
-    attachBtn.addEventListener("click", () => {
+    listen(attachBtn, "click", () => {
       if (isSendingFile) return;
-      if (!selectedUser) { alert("Select a user first"); return; }
+      if (!getActiveChatUser()) { alert("Select a user first"); return; }
       fileInputEl.click();
     });
   }
 
-  if (fileInputEl) fileInputEl.addEventListener("change", sendMediaMessage);
+  listen(fileInputEl, "change", sendMediaMessage);
 
   if (videoCallBtn) {
-    videoCallBtn.addEventListener("click", () => {
-      if (!selectedUser) return;
-      const url = `/video?with=${encodeURIComponent(selectedUser)}&autostart=1`;
+    listen(videoCallBtn, "click", () => {
+      const activeChatUser = getActiveChatUser();
+      if (!activeChatUser) return;
+      const url = `/video?with=${encodeURIComponent(activeChatUser)}&autostart=1`;
       if (window.navigateTo) window.navigateTo(url); else window.location.href = url;
     });
   }
 
-  if (cancelEditBtn) cancelEditBtn.addEventListener("click", exitEditMode);
-  if (closeForwardModalBtn) closeForwardModalBtn.addEventListener("click", closeForwardModal);
+  listen(cancelEditBtn, "click", exitEditMode);
+  listen(closeForwardModalBtn, "click", closeForwardModal);
   if (forwardModal) forwardModal.onclick = (e) => { if (e.target === forwardModal) closeForwardModal(); };
 
-  if (cancelReplyBtn) cancelReplyBtn.addEventListener("click", exitReplyMode);
-  if (deleteConversationBtn) deleteConversationBtn.addEventListener("click", deleteConversation);
+  listen(cancelReplyBtn, "click", exitReplyMode);
+  listen(deleteConversationBtn, "click", deleteConversation);
   
   if (chatMenuBtn && chatMenu) {
-    chatMenuBtn.addEventListener("click", (event) => {
+    listen(chatMenuBtn, "click", (event) => {
       event.stopPropagation();
       chatMenu.classList.toggle("hidden");
     });
   }
   
-  if (backToChatsBtn) backToChatsBtn.addEventListener("click", returnToChatsList);
+  listen(backToChatsBtn, "click", returnToChatsList);
 
-  document.addEventListener("click", (e) => {
+  listen(document, "click", (e) => {
     if (messageContextMenu && !messageContextMenu.contains(e.target)) hideContextMenu();
     if (chatMenu) chatMenu.classList.add("hidden");
   });
 
   if (mobileTabletQuery.addEventListener) {
-    mobileTabletQuery.addEventListener("change", applyResponsiveShellState);
+    mobileTabletQuery.addEventListener("change", applyResponsiveShellState, eventOptions);
   }
 
-  await loadUsersFromApi();
+  await loadUsersFromApi(initId);
+  if (window.__chatPageAbortController !== initAbortController) return;
   applyResponsiveShellState();
   updateComposerMeta();
   restoreLastChat();
@@ -540,13 +560,15 @@ function mergePresenceUpdate(presence) {
   });
 }
 
-async function loadUsersFromApi() {
+async function loadUsersFromApi(initId = window.__chatInitId) {
   const res = await authFetch("/api/users");
+  if (initId !== window.__chatInitId) return;
   if (!res.ok) {
     console.error("Failed to load users from API:", res.status, res.statusText);
     return;
   }
   const users = await res.json();
+  if (initId !== window.__chatInitId) return;
 
   users.forEach((u) => {
     if (!usersPresence[u.username]) {
@@ -702,12 +724,17 @@ async function deleteConversation() {
   socket.emit("deleteConversation", { withUser: selectedUser });
 }
 
+function getActiveChatUser() {
+  return selectedUser || window.__chatSelectedUser || "";
+}
+
 function sendTextMessage() {
   if (isSendingFile) return;
 
   const msg = messageInputEl.value.trim();
+  const activeChatUser = getActiveChatUser();
 
-  if (!selectedUser && !editingId) { // If editing, selectedUser might not be relevant for the message target
+  if (!activeChatUser && !editingId) { // If editing, selectedUser might not be relevant for the message target
     alert("Select a user first");
     return;
   }
@@ -715,7 +742,7 @@ function sendTextMessage() {
   if (!msg) return;
 
   socket.emit("privateMessage", {
-    to: selectedUser, // Target user for new message
+    to: activeChatUser, // Target user for new message
     message: msg, // Message content
     type: "text", // Message type
     ...(editingId && { messageId: editingId }), // Include messageId if editing
@@ -774,8 +801,9 @@ function clearTypingActivity() {
 async function sendMediaMessage(event) {
   const file = event.target.files[0];
   event.target.value = "";
+  const activeChatUser = getActiveChatUser();
 
-  if (!file || !selectedUser) return;
+  if (!file || !activeChatUser) return;
   if (isSendingFile) return;
   if (file.size > MAX_FILE_SIZE_BYTES) {
     const errorMessage = "File must be 300 MB or smaller.";
@@ -800,7 +828,7 @@ async function sendMediaMessage(event) {
 
     socket.emit("privateMessage", {
       clientId,
-      to: selectedUser,
+      to: activeChatUser,
       type: fileKind,
       mediaUrl: uploadData.url,
       message: file.name
@@ -1378,6 +1406,18 @@ function persistLastChat() {
 }
 
 function restoreLastChat() {
+  const params = new URLSearchParams(window.location.search);
+  const requestedUser = (params.get("with") || "").trim().toLowerCase();
+  const lastUser = (localStorage.getItem(`chat:last:${currentUser}`) || "").trim().toLowerCase();
+  const username = requestedUser || lastUser;
+
+  if (username && username !== currentUser && usersPresence[username]) {
+    const user = usersPresence[username];
+    const nameText = user?.name ? `${user.name} (@${username})` : `@${username}`;
+    openConversation(username, nameText);
+    return;
+  }
+
   window.__chatSelectedUser = "";
   selectedUser = "";
   renderEmptyState("Select a chat", "Pick a user from the list to begin.");

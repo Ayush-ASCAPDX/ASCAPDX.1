@@ -334,6 +334,89 @@
       font-family: Georgia, "Times New Roman", serif;
     }
 
+    .skeleton-card {
+      pointer-events: none;
+    }
+
+    .skeleton-line,
+    .skeleton-avatar,
+    .skeleton-media,
+    .skeleton-action {
+      position: relative;
+      overflow: hidden;
+      background: rgba(214, 230, 255, 0.1);
+    }
+
+    .skeleton-line::after,
+    .skeleton-avatar::after,
+    .skeleton-media::after,
+    .skeleton-action::after {
+      position: absolute;
+      inset: 0;
+      content: "";
+      transform: translateX(-100%);
+      background: linear-gradient(90deg, transparent, rgba(211, 227, 255, 0.16), transparent);
+      animation: skeleton-shimmer 1.15s ease-in-out infinite;
+    }
+
+    .skeleton-avatar {
+      width: 72px;
+      height: 72px;
+      flex: 0 0 72px;
+      border-radius: 999px;
+    }
+
+    .skeleton-line {
+      height: 16px;
+      border-radius: 999px;
+    }
+
+    .skeleton-line.is-title {
+      width: min(230px, 58vw);
+      height: 24px;
+    }
+
+    .skeleton-line.is-meta {
+      width: min(170px, 44vw);
+      margin-top: 10px;
+    }
+
+    .skeleton-line.is-body {
+      height: 18px;
+      margin-bottom: 14px;
+    }
+
+    .skeleton-line.is-short {
+      width: 64%;
+    }
+
+    .skeleton-media {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      border-top: 1px solid rgba(255, 255, 255, 0.04);
+    }
+
+    .skeleton-actions {
+      min-height: 86px;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      align-items: center;
+      gap: 18px;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      padding: 0 30px;
+    }
+
+    .skeleton-action {
+      height: 34px;
+      border-radius: 999px;
+    }
+
+    @keyframes skeleton-shimmer {
+      100% {
+        transform: translateX(100%);
+      }
+    }
+
     .share-dialog {
       width: min(420px, 100%);
       border-radius: 22px;
@@ -466,6 +549,12 @@
         border-width: 3px;
       }
 
+      .skeleton-avatar {
+        width: 52px;
+        height: 52px;
+        flex-basis: 52px;
+      }
+
       .feed-name {
         font-size: 21px;
       }
@@ -492,6 +581,12 @@
       .feed-actions {
         min-height: 76px;
         padding-inline: 8px;
+      }
+
+      .skeleton-actions {
+        min-height: 70px;
+        gap: 10px;
+        padding-inline: 14px;
       }
 
       .feed-action {
@@ -589,6 +684,12 @@
         flex-basis: 46px;
       }
 
+      .skeleton-avatar {
+        width: 46px;
+        height: 46px;
+        flex-basis: 46px;
+      }
+
       .feed-name {
         font-size: 19px;
       }
@@ -672,9 +773,9 @@
       }
 
       .stories-row {
-gap: 10px;
-        margin-block: 25px 36px;
-        padding-left: 7px;
+        gap: 10px;
+        margin-block: 18px 36px;
+        padding-block: 6px 10px;
       }
 
       .story,
@@ -730,6 +831,12 @@ gap: 10px;
         border-width: 2px;
       }
 
+      .skeleton-avatar {
+        width: 42px;
+        height: 42px;
+        flex-basis: 42px;
+      }
+
       .feed-name {
         font-size: 15px;
       }
@@ -761,6 +868,25 @@ gap: 10px;
       .feed-actions {
         min-height: 66px;
         padding-inline: 30px;
+      }
+
+      .skeleton-actions {
+        min-height: 58px;
+        gap: 8px;
+        padding-inline: 18px;
+      }
+
+      .skeleton-line.is-title {
+        height: 16px;
+      }
+
+      .skeleton-line.is-meta,
+      .skeleton-line.is-body {
+        height: 12px;
+      }
+
+      .skeleton-action {
+        height: 24px;
       }
 
       .feed-action {
@@ -795,9 +921,14 @@ gap: 10px;
       </button>
       <h1 class="brand-title">IndiChat</h1>
     </div>
-    <button class="grid h-12 w-12 place-items-center transition-transform active:scale-95" type="button" aria-label="Search feed">
-      <span class="material-symbols-outlined header-icon">search</span>
-    </button>
+    <div class="flex items-center gap-4 feed-header-actions">
+      <button class="grid h-12 w-12 place-items-center transition-transform active:scale-95" type="button" aria-label="Search feed">
+        <span class="material-symbols-outlined header-icon">search</span>
+      </button>
+      <button class="grid h-12 w-12 place-items-center transition-transform active:scale-95" type="button" aria-label="Create post" onclick="window.navigateTo ? window.navigateTo('/create-post') : (window.location.href = '/create-post')">
+        <span class="material-symbols-outlined header-icon">add</span>
+      </button>
+    </div>
   </header>
 
   <main class="feed-shell">
@@ -837,15 +968,10 @@ gap: 10px;
 
     <section class="feed-list" id="feedContainer" aria-label="Feed posts"></section>
 
-    <div id="status" class="status-panel flex flex-col items-center justify-center gap-4 py-14">
-      <div class="h-10 w-10 animate-spin rounded-full border-4 border-accent-electric/20 border-t-accent-electric"></div>
-      <p class="text-lg italic">Loading more updates...</p>
-    </div>
+    <div id="status" class="status-panel hidden flex-col items-center justify-center gap-4 py-14"></div>
   </main>
 
-  <button onclick="window.navigateTo ? window.navigateTo('/create-post') : (window.location.href = '/create-post')" class="fab" type="button" aria-label="Create post">
-    <span class="material-symbols-outlined">add</span>
-  </button>
+
 
   <div class="fixed inset-0 z-[2000] hidden items-center justify-center bg-black/80 p-4 backdrop-blur-md" id="shareModal">
     <div class="share-dialog p-6">
@@ -890,7 +1016,7 @@ gap: 10px;
   <script src="/feed.js"></script>
   <script>
     window.addEventListener("DOMContentLoaded", () => {
-      if (window.initFeedPage) window.initFeedPage();
+      if (!window.__feedInitToken && window.initFeedPage) window.initFeedPage();
     });
   </script>
   <script src="/nav-loader.js" defer></script>

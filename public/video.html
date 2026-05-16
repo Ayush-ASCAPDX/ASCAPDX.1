@@ -21,11 +21,25 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@300..700,0..1&display=swap" rel="stylesheet">
   <script src="/theme.js"></script>
   <link rel="stylesheet" href="/style.css">
 </head>
 <body class="video-page font-sans antialiased">
-  <div class="video-shell max-[990px]:mx-2 max-[640px]:mx-1">
+  <div class="video-shell">
+    <header class="video-call-header">
+      <button class="video-header-btn" type="button" aria-label="Back to chat" onclick="window.location.href='/chat'">
+        <span class="material-symbols-outlined">arrow_back</span>
+      </button>
+      <div class="video-call-title">
+        <div id="remoteLabel">Remote</div>
+        <div id="callStatus" class="video-status">Preparing call...</div>
+      </div>
+      <button class="video-header-btn" type="button" aria-label="Add participant">
+        <span class="material-symbols-outlined">person_add</span>
+      </button>
+    </header>
+
     <div id="incomingBanner" class="incoming-banner hidden">
       <span id="incomingText">Incoming call...</span>
       <div class="incoming-actions">
@@ -33,34 +47,55 @@
         <button id="declineCallBtn" class="danger-btn" type="button">Decline</button>
       </div>
     </div>
-    <div id="callStatus" class="video-status">Preparing call...</div>
 
     <main class="video-stage">
       <section class="video-card video-remote">
         <div class="video-overlay top">
-          <span id="remoteLabel">Remote</span>
           <span id="connectionBadge" class="video-badge">Idle</span>
           <span id="timerBadge" class="video-badge">00:00</span>
-          <button id="fullscreenBtn" class="secondary-btn" type="button">Fullscreen</button>
+          <button id="fullscreenBtn" class="video-mini-btn" type="button" aria-label="Fullscreen">
+            <span class="material-symbols-outlined">open_in_full</span>
+          </button>
         </div>
         <video id="remoteVideo" autoplay playsinline></video>
-        <div id="remoteEmpty" class="video-empty">Waiting for remote video...</div>
+        <div id="remoteEmpty" class="video-empty">
+          <div class="video-empty-icon">
+            <span class="material-symbols-outlined">videocam</span>
+          </div>
+          <div class="video-empty-title">Waiting for remote video...</div>
+          <div class="video-empty-sub">
+            <span class="material-symbols-outlined">lock</span>
+            <span>End-to-end encrypted</span>
+          </div>
+        </div>
       </section>
 
       <aside class="video-card video-local">
         <video id="localVideo" autoplay muted playsinline></video>
         <div class="video-overlay">
-          <span>You</span>
+          <span class="material-symbols-outlined">mic</span>
           <span id="localMediaState">Mic on . Cam on</span>
         </div>
       </aside>
     </main>
 
     <footer class="video-controls">
-      <button id="startCallBtn" class="chat-send-btn video-control-btn" type="button">Start</button>
-      <button id="muteBtn" class="secondary-btn video-control-btn" type="button">Mic On</button>
-      <button id="cameraBtn" class="secondary-btn video-control-btn" type="button">Cam On</button>
-      <button id="endCallBtn" class="danger-btn video-control-btn end" type="button">End</button>
+      <button id="startCallBtn" class="video-control-btn" type="button" aria-label="Start call">
+        <span class="material-symbols-outlined">cameraswitch</span>
+        <span class="video-control-label">Start</span>
+      </button>
+      <button id="cameraBtn" class="video-control-btn" type="button" aria-label="Camera on">
+        <span class="material-symbols-outlined">videocam</span>
+        <span class="video-control-label">Cam On</span>
+      </button>
+      <button id="muteBtn" class="video-control-btn" type="button" aria-label="Microphone on">
+        <span class="material-symbols-outlined">mic</span>
+        <span class="video-control-label">Mic On</span>
+      </button>
+      <button id="endCallBtn" class="video-control-btn end" type="button" aria-label="End call">
+        <span class="material-symbols-outlined">call_end</span>
+        <span class="video-control-label">End</span>
+      </button>
     </footer>
   </div>
 
