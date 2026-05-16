@@ -1421,7 +1421,7 @@ button {
   width: 100%;
   border-bottom: 2px solid;
   background: transparent;
-  color: #14346f;
+  color: #4cb8ff;
   border-radius: 9px;
   text-align: left;
   padding: 8px 10px;
@@ -2173,7 +2173,7 @@ button {
   .mobile-back-btn {
     width: 30px;
     height: 30px;
-    border-radius: 50%;
+    border-radius: 19%;
   }
 
   .chat-messages {

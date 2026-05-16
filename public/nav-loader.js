@@ -175,20 +175,39 @@
       ensureLoader();
 
       // Manually trigger scripts in the new content
-      // (Browsers do not execute scripts inserted via innerHTML)
       const scripts = newDoc.querySelectorAll("script");
       scripts.forEach((oldScript) => {
+        const src = oldScript.getAttribute("src");
+        
+        // Prevent re-injecting the SPA loader and mobile nav to avoid redundant logic or loops
+        if (src && (src.includes('nav-loader.js') || src.includes('mobile-nav.js'))) return;
+        
+        // Skip auth.js if it's already loaded to prevent "Identifier already declared" errors
+        if (src && src.includes('auth.js') && document.querySelector('script[src*="auth.js"]')) return;
+
         const newScript = document.createElement("script");
         Array.from(oldScript.attributes).forEach(attr => {
-          // Prevent re-injecting the SPA loader and mobile nav to avoid redundant logic or loops
-          if (attr.name === 'src' && (attr.value.includes('nav-loader.js') || attr.value.includes('mobile-nav.js'))) return;
           newScript.setAttribute(attr.name, attr.value);
         });
+
         if (oldScript.src) {
           newScript.src = oldScript.src;
           newScript.async = false;
         } else {
-          newScript.textContent = oldScript.textContent;
+          // If it's an inline script, check if it's the tailwind config and wrap it
+          if (oldScript.id === "tailwind-config") {
+            newScript.textContent = `
+              if (window.tailwind) {
+                ${oldScript.textContent}
+              } else {
+                window.addEventListener('load', () => {
+                  if (window.tailwind) { ${oldScript.textContent} }
+                });
+              }
+            `;
+          } else {
+            newScript.textContent = oldScript.textContent;
+          }
         }
         document.body.appendChild(newScript);
       });

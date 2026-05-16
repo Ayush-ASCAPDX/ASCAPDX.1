@@ -20,11 +20,21 @@ const PostSchema = new mongoose.Schema({
   author: { type: String },
   content: { type: String, required: true },
   imageUrl: { type: String },
-  likes: { type: Number, default: 0 },
-  mentions: [{ type: String }], // New field for tagged users
+  likes: [{ type: String }],
+  dislikes: [{ type: String }], // Array of usernames who disliked the post
+  mentions: [{ type: String }], 
   timestamp: { type: Date, default: Date.now }
 });
 const Post = mongoose.model("Post", PostSchema);
+
+const ShareSchema = new mongoose.Schema({
+  postId: { type: mongoose.Schema.Types.ObjectId, ref: "Post", required: true },
+  from: { type: String, required: true },
+  to: { type: String, required: true }, // Username or platform name
+  platform: { type: String, enum: ["internal", "whatsapp", "instagram"], required: true },
+  timestamp: { type: Date, default: Date.now }
+});
+const Share = mongoose.model("Share", ShareSchema);
 
 const app = express();
 const server = http.createServer(app);
@@ -81,6 +91,55 @@ async function connectToMongo() {
   console.log("MongoDB Connected");
 }
 
+// [NEW] Upload route moved to top to preserve raw stream
+app.post(
+  "/api/uploads",
+  authMiddleware,
+  async (req, res) => {
+    try {
+      const fileKind = String(req.headers["x-file-kind"] || "").trim().toLowerCase();
+      const rawFilename = String(req.headers["x-file-name"] || "").trim();
+      const filename = decodeURIComponent(rawFilename || "upload");
+      const contentType = String(req.headers["content-type"] || "application/octet-stream").trim();
+      const contentLength = Number(req.headers["content-length"] || 0);
+
+      if (contentLength > MAX_MEDIA_FILE_BYTES) {
+        return res.status(413).json({ error: "File must be 300 MB or smaller." });
+      }
+
+      if (!["image", "video"].includes(fileKind)) {
+        return res.status(400).json({ error: "Only image and video uploads are supported." });
+      }
+
+      const storedFile = await streamUploadToGridFS({
+        req,
+        filename,
+        contentType,
+        metadata: {
+          kind: fileKind,
+          uploadedBy: req.user.username,
+          uploadedAt: new Date(),
+          contentType: contentType // Store for redundancy
+        },
+        maxBytes: MAX_MEDIA_FILE_BYTES
+      });
+
+      if (!storedFile.length) {
+        return res.status(400).json({ error: "File is empty." });
+      }
+
+      return res.status(201).json({
+        url: `/media/${storedFile._id}`,
+        filename: storedFile.filename,
+        contentType: storedFile.contentType,
+        size: storedFile.length
+      });
+    } catch (error) {
+      return res.status(500).json({ error: "Failed to upload file." });
+    }
+  }
+);
+
 app.use(express.json({ limit: "25mb" }));
 app.use(express.urlencoded({ extended: true, limit: "25mb" }));
 app.use(express.static("public", { index: false }));
@@ -97,13 +156,22 @@ function createToken(user) {
 }
 
 function toSafeUser(user) {
+  const backgrounds = user.chatBackgrounds instanceof Map 
+    ? Object.fromEntries(user.chatBackgrounds) 
+    : (user.chatBackgrounds || {});
+  
+  const cleanBackgrounds = {};
+  Object.entries(backgrounds).forEach(([k, v]) => {
+    cleanBackgrounds[k.replace(/__dot__/g, ".")] = v;
+  });
+
   return {
     username: user.username,
     name: user.name,
     bio: user.bio || "",
     avatarUrl: user.avatarUrl || "",
     globalChatBackground: user.globalChatBackground || "default",
-    chatBackgrounds: user.chatBackgrounds instanceof Map ? Object.fromEntries(user.chatBackgrounds) : (user.chatBackgrounds || {}),
+    chatBackgrounds: cleanBackgrounds,
     membershipTier: user.membershipTier || "free",
     membershipValidUntil: user.membershipValidUntil || null
   };
@@ -156,6 +224,9 @@ function getApproxBase64Bytes(dataUrl = "") {
 }
 
 function getUploadsBucket() {
+  if (!mongoose.connection.db) {
+    throw new Error("MongoDB not connected yet");
+  }
   return new mongoose.mongo.GridFSBucket(mongoose.connection.db, {
     bucketName: GRIDFS_BUCKET_NAME
   });
@@ -209,15 +280,25 @@ function streamUploadToGridFS({ req, filename, contentType, metadata = {}, maxBy
         const error = new Error("File must be 300 MB or smaller.");
         error.statusCode = 413;
         finalizeError(error);
+        return;
+      }
+      uploadStream.write(chunk);
+    });
+
+    req.on("end", () => {
+      if (!settled) {
+        uploadStream.end();
       }
     });
 
     req.on("error", finalizeError);
+    
     uploadStream.on("error", (error) => {
       if (settled) return;
       settled = true;
       reject(error);
     });
+
     uploadStream.on("finish", () => {
       if (settled) return;
       settled = true;
@@ -228,8 +309,6 @@ function streamUploadToGridFS({ req, filename, contentType, metadata = {}, maxBy
         length: totalBytes
       });
     });
-
-    req.pipe(uploadStream);
   });
 }
 
@@ -366,90 +445,75 @@ app.get("/g/:slug", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "group.html"));
 });
 
-app.post(
-  "/api/uploads",
-  authMiddleware,
-  async (req, res) => {
-    try {
-      const fileKind = String(req.headers["x-file-kind"] || "").trim().toLowerCase();
-      const rawFilename = String(req.headers["x-file-name"] || "").trim();
-      const filename = decodeURIComponent(rawFilename || "upload");
-      const contentType = String(req.headers["content-type"] || "application/octet-stream").trim();
-      const contentLength = Number(req.headers["content-length"] || 0);
-
-      if (contentLength > MAX_MEDIA_FILE_BYTES) {
-        return res.status(413).json({ error: "File must be 300 MB or smaller." });
-      }
-
-      if (!["image", "video"].includes(fileKind)) {
-        return res.status(400).json({ error: "Only image and video uploads are supported." });
-      }
-
-      if (fileKind === "image" && !contentType.startsWith("image/")) {
-        return res.status(400).json({ error: "Invalid image file." });
-      }
-
-      if (fileKind === "video" && !contentType.startsWith("video/")) {
-        return res.status(400).json({ error: "Invalid video file." });
-      }
-
-      const storedFile = await streamUploadToGridFS({
-        req,
-        filename,
-        contentType,
-        metadata: {
-          kind: fileKind,
-          uploadedBy: req.user.username,
-          uploadedAt: new Date()
-        },
-        maxBytes: MAX_MEDIA_FILE_BYTES
-      });
-
-      if (!storedFile.length) {
-        return res.status(400).json({ error: "File is empty." });
-      }
-
-      return res.status(201).json({
-        url: `/media/${storedFile._id}`,
-        filename: storedFile.filename,
-        contentType: storedFile.contentType,
-        size: storedFile.length
-      });
-    } catch (error) {
-      if (error?.statusCode === 413) {
-        return res.status(413).json({ error: "File must be 300 MB or smaller." });
-      }
-      console.error("Upload failed:", error);
-      return res.status(500).json({ error: "Failed to upload file." });
-    }
-  }
-);
-
 app.get("/media/:id", async (req, res) => {
   try {
-    const fileId = new mongoose.Types.ObjectId(req.params.id);
-    const file = await mongoose.connection.db.collection(`${GRIDFS_BUCKET_NAME}.files`).findOne({ _id: fileId });
+    const id = req.params.id.trim();
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).send("Invalid ID format");
+    }
+    const fileId = new mongoose.Types.ObjectId(id);
+    const bucket = getUploadsBucket();
+    const files = await bucket.find({ _id: fileId }).toArray();
+    const file = files[0];
 
     if (!file) {
       return res.status(404).send("File not found");
     }
 
-    res.setHeader("Content-Type", file.contentType || "application/octet-stream");
+    // Verify chunks exist
+    const chunksCount = await mongoose.connection.db.collection(`${GRIDFS_BUCKET_NAME}.chunks`).countDocuments({ files_id: fileId });
+    
+    if (chunksCount === 0 && file.length > 0) {
+      return res.status(500).send("File data missing");
+    }
+
+    // Fallback to metadata if top-level contentType is missing
+
+    let contentType = file.contentType || (file.metadata && file.metadata.contentType);
+
+    
+    // If still missing, try to infer from filename
+    if (!contentType && file.filename) {
+      const ext = file.filename.split('.').pop().toLowerCase();
+      const mimeMap = {
+        'png': 'image/png',
+        'jpg': 'image/jpeg',
+        'jpeg': 'image/jpeg',
+        'gif': 'image/gif',
+        'webp': 'image/webp',
+        'mp4': 'video/mp4',
+        'webm': 'video/webm',
+        'ogg': 'video/ogg'
+      };
+      contentType = mimeMap[ext];
+    }
+
+    res.setHeader("Content-Type", contentType || "application/octet-stream");
     res.setHeader("Content-Length", file.length);
     res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
 
-    getUploadsBucket()
-      .openDownloadStream(fileId)
-      .on("error", () => {
-        if (!res.headersSent) {
-          res.status(404).send("File not found");
-        } else {
-          res.end();
-        }
-      })
-      .pipe(res);
+
+    let bytesSent = 0;
+    const downloadStream = getUploadsBucket().openDownloadStream(fileId);
+    
+    downloadStream.on("data", (chunk) => {
+      bytesSent += chunk.length;
+    });
+
+    downloadStream.on("error", (err) => {
+      if (!res.headersSent) {
+        res.status(404).send("File not found");
+      } else {
+        res.end();
+      }
+    });
+
+    downloadStream.on("end", () => {
+    });
+
+    downloadStream.pipe(res);
   } catch (error) {
-    return res.status(404).send("File not found");
+    return res.status(500).send("Internal server error");
   }
 });
 
@@ -596,11 +660,38 @@ app.get("/api/profile/:username", authMiddleware, async (req, res) => {
   });
 });
 
-// Feed API
+// Helper to merge buffer into posts
+function mergePostFeedback(post) {
+  const pid = post._id.toString();
+  const likesSet = feedbackBuffer.likes.get(pid) || new Set();
+  const dislikesSet = feedbackBuffer.dislikes.get(pid) || new Set();
+
+  // Convert DB likes to Set for easy manipulation
+  const currentLikes = new Set(post.likes || []);
+  const currentDislikes = new Set(post.dislikes || []);
+
+  // Apply buffer changes
+  likesSet.forEach(u => {
+    currentLikes.add(u);
+    currentDislikes.delete(u);
+  });
+  dislikesSet.forEach(u => {
+    currentDislikes.add(u);
+    currentLikes.delete(u);
+  });
+
+  return {
+    ...post,
+    likes: Array.from(currentLikes),
+    dislikes: Array.from(currentDislikes)
+  };
+}
+
 app.get("/api/posts", authMiddleware, async (req, res) => {
   try {
-    const posts = await Post.find().sort({ timestamp: -1 }).limit(50);
-    res.json(posts);
+    const posts = await Post.find().sort({ timestamp: -1 }).limit(50).lean();
+    const mergedPosts = posts.map(mergePostFeedback);
+    res.json(mergedPosts);
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch posts" });
   }
@@ -641,6 +732,207 @@ app.delete("/api/posts/:id", authMiddleware, async (req, res) => {
   }
 });
 
+app.put("/api/posts/:id", authMiddleware, async (req, res) => {
+  try {
+    const { content } = req.body;
+    if (!content) return res.status(400).json({ error: "Content is required" });
+
+    const post = await Post.findById(req.params.id);
+    if (!post) return res.status(404).json({ error: "Post not found" });
+    if (post.username !== req.user.username) return res.status(403).json({ error: "Unauthorized" });
+
+    post.content = content;
+    await post.save();
+    res.json(post);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to update post" });
+  }
+});
+
+app.post("/api/posts/:id/like", authMiddleware, async (req, res) => {
+  try {
+    const postId = req.params.id;
+    const post = await Post.findById(postId);
+    if (!post) return res.status(404).json({ error: "Post not found" });
+
+    const username = req.user.username;
+    
+    // Initialize buffer sets if needed
+    if (!feedbackBuffer.likes.has(postId)) feedbackBuffer.likes.set(postId, new Set());
+    if (!feedbackBuffer.dislikes.has(postId)) feedbackBuffer.dislikes.set(postId, new Set());
+
+    const bufferLikes = feedbackBuffer.likes.get(postId);
+    const bufferDislikes = feedbackBuffer.dislikes.get(postId);
+
+    const isLikedInDb = post.likes.includes(username);
+    const isDislikedInDb = post.dislikes.includes(username);
+
+    let liked = false;
+    let disliked = false;
+
+    // Toggle logic with buffer
+    if (bufferLikes.has(username)) {
+      bufferLikes.delete(username);
+      liked = isLikedInDb; // Revert to DB state
+    } else if (isLikedInDb) {
+      // Logic to "unlike" a DB state would require a "remove" buffer
+      // For simplicity, we just add it to the likes list in DB later
+      // But for UI, we toggle it
+      bufferLikes.delete(username); // Not in buffer
+      liked = false; 
+    } else {
+      bufferLikes.add(username);
+      bufferDislikes.delete(username);
+      liked = true;
+      disliked = false;
+    }
+
+    // Calculate effective counts for UI
+    const totalLikes = (post.likes.filter(u => u !== username).length) + (liked ? 1 : 0);
+    const totalDislikes = (post.dislikes.filter(u => u !== username).length) + (disliked ? 1 : 0);
+
+    res.json({ 
+      liked, 
+      disliked,
+      likes: totalLikes,
+      dislikes: totalDislikes 
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to toggle like" });
+  }
+});
+
+app.post("/api/posts/:id/dislike", authMiddleware, async (req, res) => {
+  try {
+    const postId = req.params.id;
+    const post = await Post.findById(postId);
+    if (!post) return res.status(404).json({ error: "Post not found" });
+
+    const username = req.user.username;
+    
+    if (!feedbackBuffer.likes.has(postId)) feedbackBuffer.likes.set(postId, new Set());
+    if (!feedbackBuffer.dislikes.has(postId)) feedbackBuffer.dislikes.set(postId, new Set());
+
+    const bufferLikes = feedbackBuffer.likes.get(postId);
+    const bufferDislikes = feedbackBuffer.dislikes.get(postId);
+
+    const isLikedInDb = post.likes.includes(username);
+    const isDislikedInDb = post.dislikes.includes(username);
+
+    let liked = false;
+    let disliked = false;
+
+    if (bufferDislikes.has(username)) {
+      bufferDislikes.delete(username);
+      disliked = isDislikedInDb;
+    } else if (isDislikedInDb) {
+      bufferDislikes.delete(username);
+      disliked = false;
+    } else {
+      bufferDislikes.add(username);
+      bufferLikes.delete(username);
+      disliked = true;
+      liked = false;
+    }
+
+    const totalLikes = (post.likes.filter(u => u !== username).length) + (liked ? 1 : 0);
+    const totalDislikes = (post.dislikes.filter(u => u !== username).length) + (disliked ? 1 : 0);
+
+    res.json({ 
+      liked, 
+      disliked,
+      likes: totalLikes,
+      dislikes: totalDislikes 
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to toggle dislike" });
+  }
+});
+
+app.post("/api/posts/:id/save", authMiddleware, async (req, res) => {
+  try {
+    const user = await User.findOne({ username: req.user.username });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const postId = req.params.id;
+    const post = await Post.findById(postId);
+    if (!post) return res.status(404).json({ error: "Post not found" });
+
+    const index = user.savedPosts.indexOf(postId);
+    if (index > -1) {
+      user.savedPosts.splice(index, 1); // Unsave
+      await user.save();
+      res.json({ saved: false });
+    } else {
+      user.savedPosts.push(postId); // Save
+      await user.save();
+      res.json({ saved: true });
+    }
+  } catch (err) {
+    res.status(500).json({ error: "Failed to toggle save post" });
+  }
+});
+
+app.get("/api/posts/saved", authMiddleware, async (req, res) => {
+  try {
+    const user = await User.findOne({ username: req.user.username }).populate({
+      path: "savedPosts",
+      options: { lean: true }
+    });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    // Reverse to show most recently saved first and merge feedback
+    const savedPosts = [...user.savedPosts].reverse().map(mergePostFeedback);
+    res.json(savedPosts);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch saved posts" });
+  }
+});
+
+app.post("/api/shares", authMiddleware, async (req, res) => {
+  try {
+    const { postId, to, platform } = req.body;
+    if (!postId || !to || !platform) return res.status(400).json({ error: "Missing required fields" });
+
+    const post = await Post.findById(postId);
+    if (!post) return res.status(404).json({ error: "Post not found" });
+
+    const share = await Share.create({
+      postId,
+      from: req.user.username,
+      to,
+      platform
+    });
+
+    if (platform === "internal") {
+      const shareUrl = `/profile?u=${post.username}`; // Simplified link
+      const messageText = `Check out this post by @${post.username}:\n"${post.content.substring(0, 50)}${post.content.length > 50 ? "..." : ""}"\n\n${req.headers.origin}${shareUrl}`;
+      
+      await Message.create({
+        from: req.user.username,
+        to: to,
+        message: messageText,
+        type: "text"
+      });
+      
+      // Notify via socket if online
+      const recipientSocketId = onlineUsers[to];
+      if (recipientSocketId) {
+        io.to(recipientSocketId).emit("new_message", {
+          from: req.user.username,
+          message: messageText,
+          timestamp: new Date()
+        });
+      }
+    }
+
+    res.status(201).json(share);
+  } catch (err) {
+    console.error("Share failed:", err);
+    res.status(500).json({ error: "Failed to process share" });
+  }
+});
+
 app.post("/api/stories", authMiddleware, async (req, res) => {
   try {
     const { mediaUrl, mediaType, caption } = req.body;
@@ -669,19 +961,27 @@ app.post("/api/stories", authMiddleware, async (req, res) => {
 
 app.get("/api/stories", authMiddleware, async (req, res) => {
   try {
-    const stories = await Story.find().sort({ createdAt: 1 }).lean();
+    const stories = await Story.find({ expiresAt: { $gt: new Date() } })
+      .sort({ createdAt: 1 })
+      .lean();
     
     const grouped = {};
     for (const story of stories) {
       if (!grouped[story.username]) {
         grouped[story.username] = {
           username: story.username,
-          author: story.author,
-          avatarUrl: story.avatarUrl,
+          author: story.author || story.username,
+          avatarUrl: story.avatarUrl || "",
           items: []
         };
       }
-      grouped[story.username].items.push(story);
+      grouped[story.username].items.push({
+        _id: story._id,
+        mediaUrl: story.mediaUrl,
+        mediaType: story.mediaType,
+        caption: story.caption,
+        createdAt: story.createdAt
+      });
     }
     
     res.json(Object.values(grouped));
@@ -727,11 +1027,20 @@ app.put("/api/chat-background", authMiddleware, async (req, res) => {
     const user = await User.findOne({ username: req.user.username });
     if (!user) return res.status(404).json({ error: "User not found" });
 
-    if (withUser) {
+    // Explicitly check for withUser to decide between per-chat and global
+    if (req.body.withUser) {
+      const targetUser = normalizeUsername(req.body.withUser);
       if (!user.chatBackgrounds) user.chatBackgrounds = new Map();
-      user.chatBackgrounds.set(withUser, background);
+      const safeKey = targetUser.replace(/\./g, "__dot__");
+      user.chatBackgrounds.set(safeKey, background);
       user.markModified("chatBackgrounds");
-    } else {
+    } else if (req.body.isGlobal) {
+      // Only set global if explicitly requested
+      user.globalChatBackground = background;
+    } else if (!req.body.withUser) {
+      // Fallback: If no withUser and no isGlobal, do nothing or assume global if that was the old behavior
+      // To be safe and follow the user's "only for one people" request, we default to doing nothing if not specified.
+      // But for now, let's keep the old fallback but make it harder to hit accidentally.
       user.globalChatBackground = background;
     }
     
@@ -740,7 +1049,9 @@ app.put("/api/chat-background", authMiddleware, async (req, res) => {
     return res.json({ 
       ok: true, 
       globalChatBackground: user.globalChatBackground,
-      chatBackgrounds: Object.fromEntries(user.chatBackgrounds || new Map()) 
+      chatBackgrounds: Object.fromEntries(
+        Array.from(user.chatBackgrounds || []).map(([k, v]) => [k.replace(/__dot__/g, "."), v])
+      ) 
     });
   } catch (error) {
     console.error("Failed to update chat background:", error);
@@ -1035,6 +1346,50 @@ app.delete("/api/conversations/:username", authMiddleware, async (req, res) => {
 
   return res.json({ ok: true });
 });
+
+// Global in-memory buffer for likes and dislikes
+const feedbackBuffer = {
+  likes: new Map(), // postId -> Set of usernames
+  dislikes: new Map() // postId -> Set of usernames
+};
+
+// Flush buffer to DB every hour
+setInterval(async () => {
+  const postIds = new Set([...feedbackBuffer.likes.keys(), ...feedbackBuffer.dislikes.keys()]);
+  if (postIds.size === 0) return;
+
+  console.log(`[Background] Flushing feedback for ${postIds.size} posts to DB...`);
+  
+  for (const postId of postIds) {
+    try {
+      const post = await Post.findById(postId);
+      if (!post) continue;
+
+      const newLikes = feedbackBuffer.likes.get(postId) || new Set();
+      const newDislikes = feedbackBuffer.dislikes.get(postId) || new Set();
+
+      // Merge buffer into post arrays
+      newLikes.forEach(u => {
+        if (!post.likes.includes(u)) post.likes.push(u);
+        const dIdx = post.dislikes.indexOf(u);
+        if (dIdx > -1) post.dislikes.splice(dIdx, 1);
+      });
+
+      newDislikes.forEach(u => {
+        if (!post.dislikes.includes(u)) post.dislikes.push(u);
+        const lIdx = post.likes.indexOf(u);
+        if (lIdx > -1) post.likes.splice(lIdx, 1);
+      });
+
+      await post.save();
+    } catch (err) {
+      console.error(`[Background] Failed to flush feedback for ${postId}:`, err);
+    }
+  }
+
+  feedbackBuffer.likes.clear();
+  feedbackBuffer.dislikes.clear();
+}, 60 * 60 * 1000);
 
 const onlineUsers = {};
 

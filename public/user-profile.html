@@ -1,48 +1,60 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>User Profile - ASCAPDX</title>
+  <title>User Profile -Orbit</title>
   <script src="/theme.js"></script>
   <link rel="stylesheet" href="/style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap"
+    rel="stylesheet">
   <style>
     :root {
-      --bg:#03152a;
-      --bg2:#011024;
-      --surface:#172a43;
-      --surface-2:#1b304b;
-      --line:#2f4762;
-      --text:#dbe8f8;
-      --muted:#95abc5;
-      --primary:#43b8ea;
-      --primary-ink:#08273a;
-      --ok:#2bd39f;
-      --shadow-color: rgba(0, 0, 0, 0.3); /* New shadow color variable */
+      --bg: #03152a;
+      --bg2: #011024;
+      --surface: #172a43;
+      --surface-2: #1b304b;
+      --line: #2f4762;
+      --text: #dbe8f8;
+      --muted: #95abc5;
+      --primary: #43b8ea;
+      --primary-ink: #08273a;
+      --ok: #2bd39f;
+      --shadow-color: rgba(0, 0, 0, 0.3);
+      /* New shadow color variable */
     }
+
     body {
       margin: 0;
       min-height: 100dvh;
       font-family: "Geist", sans-serif;
       color: var(--text);
-      background: radial-gradient(620px 260px at 50% 8%, rgba(67,184,234,.15), transparent 70%), linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%);
+      background: radial-gradient(620px 260px at 50% 8%, rgba(67, 184, 234, .15), transparent 70%), linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%);
       padding-bottom: 100px;
     }
+
     .profile-shell {
-      max-width: 600px; /* Slightly wider */
+      max-width: 600px;
+      /* Slightly wider */
       margin: 0 auto;
-      padding: 32px 16px; /* Increased padding */
+      padding: 32px 16px;
+      /* Increased padding */
     }
+
     .topbar {
       display: flex;
       align-items: center;
-      justify-content: space-between; /* Distribute items */
+      justify-content: space-between;
+      /* Distribute items */
       margin-bottom: 32px;
     }
-    .topbar .btn-secondary { /* Apply class to back button */
+
+    .topbar .btn-secondary {
+      /* Apply class to back button */
       padding: 8px 16px;
       border-radius: 999px;
       background: var(--surface);
@@ -50,22 +62,32 @@
       color: var(--text);
       cursor: pointer;
       transition: all 0.2s ease;
-      box-shadow: 0 2px 4px var(--shadow-color); /* Add shadow */
+      box-shadow: 0 2px 4px var(--shadow-color);
+      /* Add shadow */
     }
+
     .topbar .btn-secondary:hover {
       background: var(--surface-2);
       transform: translateY(-1px);
       box-shadow: 0 4px 8px var(--shadow-color);
     }
-    .hero { text-align: center; margin-bottom: 32px; }
+
+    .hero {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
     .avatar-ring-wrap {
       width: 160px;
       height: 160px;
       margin: 0 auto;
       position: relative;
-      box-shadow: 0 4px 12px var(--shadow-color); /* Subtle shadow for avatar */
-      border-radius: 999px; /* Ensure shadow follows shape */
+      box-shadow: 0 4px 12px var(--shadow-color);
+      /* Subtle shadow for avatar */
+      border-radius: 999px;
+      /* Ensure shadow follows shape */
     }
+
     .avatar-ring {
       position: absolute;
       inset: 0;
@@ -73,31 +95,49 @@
       padding: 5px;
       background: linear-gradient(180deg, #8cd9ff, #5ec8ff);
     }
+
     .avatar-main {
       width: 100%;
       height: 100%;
       border-radius: 999px;
       object-fit: cover;
-      border: 6px solid var(--bg); /* Use bg color for inner border */
+      border: 6px solid var(--bg);
+      /* Use bg color for inner border */
     }
+
     .online-dot {
       position: absolute;
-      right: 8px; /* Adjusted position */
-      bottom: 8px; /* Adjusted position */
-      width: 28px; /* Slightly larger */
-      height: 28px; /* Slightly larger */
+      right: 8px;
+      /* Adjusted position */
+      bottom: 8px;
+      /* Adjusted position */
+      width: 28px;
+      /* Slightly larger */
+      height: 28px;
+      /* Slightly larger */
       border-radius: 999px;
       background: var(--ok);
-      border: 4px solid var(--bg); /* Use bg color for outer border */
+      border: 4px solid var(--bg);
+      /* Use bg color for outer border */
       z-index: 10;
       box-shadow: 0 0 0 0 rgba(43, 211, 159, 0.7);
       animation: pulse-dot 2s infinite;
     }
+
     @keyframes pulse-dot {
-      0% { box-shadow: 0 0 0 0 rgba(43, 211, 159, 0.7); }
-      70% { box-shadow: 0 0 0 12px rgba(43, 211, 159, 0); }
-      100% { box-shadow: 0 0 0 0 rgba(43, 211, 159, 0); }
+      0% {
+        box-shadow: 0 0 0 0 rgba(43, 211, 159, 0.7);
+      }
+
+      70% {
+        box-shadow: 0 0 0 12px rgba(43, 211, 159, 0);
+      }
+
+      100% {
+        box-shadow: 0 0 0 0 rgba(43, 211, 159, 0);
+      }
     }
+
     .name-wrapper {
       display: flex;
       align-items: center;
@@ -105,6 +145,7 @@
       gap: 12px;
       margin: 24px 0 8px;
     }
+
     .pro-badge {
       background: linear-gradient(135deg, #facc15, #eab308);
       color: #451a03;
@@ -116,27 +157,40 @@
       box-shadow: 0 0 12px rgba(234, 179, 8, 0.3);
       flex-shrink: 0;
     }
+
     .name {
       margin: 0;
-      font-size: 2.8rem; /* Larger font size */
+      font-size: 2.8rem;
+      /* Larger font size */
       font-weight: 800;
-      letter-spacing: -0.04em; /* Tighter letter spacing */
+      letter-spacing: -0.04em;
+      /* Tighter letter spacing */
       line-height: 1.1;
     }
+
     .handle {
       font-family: "JetBrains Mono", monospace;
-      font-size: 1.1rem; /* Slightly larger */
-      color: var(--primary); /* Use primary color for handle */
-      margin-bottom: 12px; /* Reduced margin */
+      font-size: 1.1rem;
+      /* Slightly larger */
+      color: var(--primary);
+      /* Use primary color for handle */
+      margin-bottom: 12px;
+      /* Reduced margin */
     }
+
     .last-seen {
-      font-size: 0.9rem; /* Slightly larger */
+      font-size: 0.9rem;
+      /* Slightly larger */
       color: var(--muted);
-      margin-top: 0px; /* Remove negative margin */
-      margin-bottom: 8px; /* Reduced for proximity to memberSince */
+      margin-top: 0px;
+      /* Remove negative margin */
+      margin-bottom: 8px;
+      /* Reduced for proximity to memberSince */
       font-weight: 500;
-      font-style: italic; /* Italic for last seen */
+      font-style: italic;
+      /* Italic for last seen */
     }
+
     .member-since {
       font-size: 0.85rem;
       color: var(--muted);
@@ -144,83 +198,145 @@
       opacity: 0.8;
       display: block;
     }
+
     .bio-card {
       background: var(--surface);
       border: 1px solid var(--line);
       border-radius: 28px;
-      padding: 28px; /* Increased padding */
-      margin-bottom: 24px; /* Increased margin */
-      box-shadow: 0 4px 16px var(--shadow-color); /* Add shadow */
+      padding: 28px;
+      /* Increased padding */
+      margin-bottom: 24px;
+      /* Increased margin */
+      box-shadow: 0 4px 16px var(--shadow-color);
+      /* Add shadow */
     }
+
     .kicker {
       font-family: "JetBrains Mono", monospace;
-      color: var(--primary); /* Use primary color */
-      font-size: 0.85rem; /* Slightly larger */
-      letter-spacing: 0.15em; /* More spacing */
+      color: var(--primary);
+      /* Use primary color */
+      font-size: 0.85rem;
+      /* Slightly larger */
+      letter-spacing: 0.15em;
+      /* More spacing */
       text-transform: uppercase;
       font-weight: 600;
     }
+
     .bio-text {
-      margin: 16px 0 0; /* Increased margin */
-      font-size: 1.15rem; /* Slightly smaller for readability */
-      line-height: 1.7; /* Increased line height */
-      color: var(--text); /* Use text color */
+      margin: 16px 0 0;
+      /* Increased margin */
+      font-size: 1.15rem;
+      /* Slightly smaller for readability */
+      line-height: 1.7;
+      /* Increased line height */
+      color: var(--text);
+      /* Use text color */
     }
+
     .action-row {
       display: flex;
       flex-wrap: wrap;
-      gap: 12px; /* Increased gap */
+      gap: 12px;
+      /* Increased gap */
       justify-content: center;
-      margin-top: 24px; /* Increased margin */
+      margin-top: 24px;
+      /* Increased margin */
     }
-    .action-row button { 
-      padding: 14px 28px; /* Larger padding */
+
+    .action-row button {
+      padding: 14px 28px;
+      /* Larger padding */
       border-radius: 999px;
       border: 1px solid var(--line);
-      background: var(--surface); color: var(--text); font-weight: 600; cursor: pointer; transition: all 0.2s;
-      box-shadow: 0 2px 6px var(--shadow-color); /* Add shadow */
+      background: var(--surface);
+      color: var(--text);
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 2px 6px var(--shadow-color);
+      /* Add shadow */
     }
+
     .action-row button:hover {
       background: var(--surface-2);
-      transform: translateY(-2px); /* More pronounced lift */
+      transform: translateY(-2px);
+      /* More pronounced lift */
       box-shadow: 0 6px 12px var(--shadow-color);
     }
+
     .action-row .btn-primary {
       background: var(--primary);
       color: var(--primary-ink);
       border: none;
-      box-shadow: 0 4px 10px rgba(67,184,234,0.4); /* Primary button specific shadow */
+      box-shadow: 0 4px 10px rgba(67, 184, 234, 0.4);
+      /* Primary button specific shadow */
     }
+
     .action-row .btn-primary:hover {
-      background: #5ec8ff; /* Slightly lighter primary on hover */
-      box-shadow: 0 6px 16px rgba(67,184,234,0.6);
+      background: #5ec8ff;
+      /* Slightly lighter primary on hover */
+      box-shadow: 0 6px 16px rgba(67, 184, 234, 0.6);
     }
+
     .action-row .danger-btn {
       border-color: #ef4444;
       color: #fca5a5;
       box-shadow: 0 2px 6px rgba(239, 68, 68, 0.3);
     }
+
     .action-row .danger-btn:hover {
       background: #ef4444;
       color: white;
       box-shadow: 0 6px 12px rgba(239, 68, 68, 0.5);
     }
-    #status { margin-top: 32px; text-align: center; min-height: 1.5em; font-size: 1rem; }
+
+    #status {
+      margin-top: 32px;
+      text-align: center;
+      min-height: 1.5em;
+      font-size: 1rem;
+    }
 
     @media (max-width: 480px) {
-      .profile-shell { padding: 24px 12px; }
-      .name { font-size: 2.2rem; }
-      .handle { font-size: 1rem; }
-      .bio-text { font-size: 1rem; line-height: 1.6; }
-      .action-row button { padding: 12px 20px; font-size: 0.9rem; }
-      .online-dot { width: 20px; height: 20px; right: 10px; bottom: 10px; border-width: 3px; }
+      .profile-shell {
+        padding: 24px 12px;
+      }
+
+      .name {
+        font-size: 2.2rem;
+      }
+
+      .handle {
+        font-size: 1rem;
+      }
+
+      .bio-text {
+        font-size: 1rem;
+        line-height: 1.6;
+      }
+
+      .action-row button {
+        padding: 12px 20px;
+        font-size: 0.9rem;
+      }
+
+      .online-dot {
+        width: 20px;
+        height: 20px;
+        right: 10px;
+        bottom: 10px;
+        border-width: 3px;
+      }
     }
   </style>
 </head>
+
 <body>
   <div class="profile-shell">
     <header class="topbar">
-      <button class="btn-secondary" onclick="window.navigateTo ? window.navigateTo('/chat') : window.location.href='/chat'">
+      <button class="btn-secondary"
+        onclick="window.navigateTo ? window.navigateTo('/chat') : window.location.href='/chat'">
         ← Back
       </button>
     </header>
@@ -259,4 +375,5 @@
   <script src="/nav-loader.js" defer></script>
   <script src="/mobile-nav.js" defer></script>
 </body>
+
 </html>

@@ -113,6 +113,141 @@
       min-height: 60px;
       width: 100%;
     }
+
+    /* Toast Notifications */
+    #toastContainer {
+      position: fixed;
+      bottom: calc(100px + env(safe-area-inset-bottom));
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 5000;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      pointer-events: none;
+      width: min(400px, 90vw);
+    }
+
+    .toast {
+      background: rgba(19, 40, 63, 0.95);
+      border: 1px solid rgba(116, 159, 207, 0.3);
+      backdrop-filter: blur(12px);
+      color: #d3e3ff;
+      padding: 16px 20px;
+      border-radius: 16px;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      animation: toast-in 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+      pointer-events: auto;
+    }
+
+    .toast.success { border-left: 4px solid #43b8ea; }
+    .toast.error { border-left: 4px solid #ef4444; }
+
+    @keyframes toast-in {
+      from { opacity: 0; transform: translateY(20px) scale(0.9); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .toast-out {
+      animation: toast-out 0.3s ease forwards;
+    }
+
+    @keyframes toast-out {
+      to { opacity: 0; transform: translateY(-10px) scale(0.9); }
+    }
+
+    .share-dialog {
+      background: rgba(19, 40, 63, 0.95);
+      border: 1px solid rgba(116, 159, 207, 0.25);
+      backdrop-filter: blur(20px);
+      border-radius: 32px;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.4);
+      color: white;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    /* Feed Card Styles for Saved Posts */
+    .glass-card {
+      background: rgba(14, 31, 50, 0.9);
+      border: 1px solid rgba(116, 159, 207, 0.25);
+      backdrop-filter: blur(20px);
+      border-radius: 32px;
+      overflow: hidden;
+      margin-bottom: 24px;
+    }
+
+    .feed-card-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 24px 28px;
+    }
+
+    .feed-author {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .feed-avatar {
+      width: 52px;
+      height: 52px;
+      border-radius: 999px;
+      border: 3px solid rgba(67, 184, 234, 0.22);
+      object-fit: cover;
+    }
+
+    .feed-name {
+      color: #d8e8ff;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    .feed-meta {
+      color: #9fb4cf;
+      font-size: 14px;
+    }
+
+    .feed-body {
+      padding: 0 28px 28px;
+    }
+
+    .feed-text {
+      color: #d3e3ff;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 1.25rem;
+      line-height: 1.6;
+    }
+
+    .feed-media {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      overflow: hidden;
+      border-top: 1px solid rgba(255, 255, 255, 0.04);
+    }
+
+    .feed-media img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
   </style>
 </head>
 <body>
@@ -126,7 +261,7 @@
         <button id="themeToggleBtn" type="button" class="theme-toggle-btn theme-toggle-btn-inline" aria-label="Toggle theme">Light</button>
         <div class="menu-wrap">
           <button class="menu-btn" id="profileMenuBtn" aria-label="Menu">⋮</button>
-          <div class="menu-drop" id="profileMenuDrop">            <button class="menu-item" id="openEditorBtn" type="button">Edit Profile</button>            <button class="menu-item" id="shareProfileBtn" type="button">Share Profile</button>          </div>
+          <div class="menu-drop" id="profileMenuDrop">            <button class="menu-item" id="openEditorBtn" type="button">Edit Profile</button>            <button class="menu-item" id="openSavedBtn" type="button">Saved Posts</button>            <button class="menu-item" id="shareProfileBtn" type="button">Share Profile</button>          </div>
         </div>
       </div>
     </header>
@@ -174,46 +309,102 @@
     <div id="bioCount" class="hidden-form"></div>
   </div>
 
+  <div class="fixed inset-0 z-[2000] hidden items-center justify-center bg-black/80 p-4 backdrop-blur-md"
+    id="savedPostsModal">
+    <div class="share-dialog p-6 w-full max-w-2xl h-[80dvh] flex flex-col">
+      <div class="flex items-center justify-between mb-6">
+        <h3 class="text-2xl font-bold">Saved Posts</h3>
+        <button id="closeSavedBtn" class="text-muted hover:text-white transition-colors">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+      <div id="savedPostsContainer" class="flex-1 overflow-y-auto space-y-6 pr-2 custom-scrollbar">
+        <!-- Saved posts will be injected here -->
+        <p class="text-center text-muted py-10 italic">No saved posts yet.</p>
+      </div>
+    </div>
+  </div>
+
+  <style>
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+  </style>
+
+  <div class="fixed inset-0 z-[2700] hidden items-center justify-center bg-black/80 p-4 backdrop-blur-md"
+    id="confirmModal">
+    <div class="share-dialog p-8 w-full max-sm:max-w-xs text-center" style="max-width: 350px;">
+      <div class="w-16 h-16 bg-red-400/10 text-red-400 rounded-full flex items-center justify-center mx-auto mb-6">
+        <span class="material-symbols-outlined text-3xl" style="color: #ef4444;">warning</span>
+      </div>
+      <h3 class="mb-2 text-xl font-bold" id="confirmTitle">Are you sure?</h3>
+      <p class="text-muted mb-8" id="confirmMessage">This action cannot be undone.</p>
+      <div class="flex gap-3">
+        <button type="button" class="flex-1 rounded-2xl bg-white/5 py-4 font-bold transition-colors hover:bg-white/10"
+          id="confirmCancelBtn">No, Cancel</button>
+        <button type="button" class="flex-1 rounded-2xl bg-red-500 py-4 font-bold text-white transition-opacity hover:opacity-90"
+          id="confirmOkBtn">Yes, Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+
   <script src="/auth.js" defer></script>
   <script src="/pwa.js" defer></script>
   <script src="/profile.js" defer></script>
   <script src="/nav-loader.js" defer></script>
   <script src="/mobile-nav.js" defer></script>
   <script>
-    document.getElementById("openEditorBtn").addEventListener("click", () => {
-      window.location.href = "/edit-profile";
-    });
-    document.getElementById("shareProfileBtn").addEventListener("click", async () => {
-      const url = window.location.href;
-      try {
-        if (navigator.share) {
-          await navigator.share({ title: "ASCAPDX Profile", url });
-          return;
-        }
-        await navigator.clipboard.writeText(url);
-        document.getElementById("status").textContent = "Profile link copied.";
-      } catch (_) {}
-    });
-    const syncTopAvatar = () => {
-      const main = document.getElementById("avatarPreview");
-      const top = document.getElementById("avatarPreviewTop");
-      if (main && top) top.src = main.src;
-    };
-    setInterval(syncTopAvatar, 500);
-    const profileMenuBtn = document.getElementById("profileMenuBtn");
-    const profileMenuDrop = document.getElementById("profileMenuDrop");
-    const profileCreateBtn = document.getElementById("profileCreateBtn");
-    profileMenuBtn.addEventListener("click", (event) => {
-      event.stopPropagation();
-      profileMenuDrop.classList.toggle("open");
-    });
-    document.addEventListener("click", () => {
-      profileMenuDrop.classList.remove("open");
-    });
-    profileCreateBtn.addEventListener("click", () => {
-      window.location.href = "/groups";
-    });
+    (function() {
+      document.getElementById("openEditorBtn").addEventListener("click", () => {
+        window.location.href = "/edit-profile";
+      });
+      document.getElementById("shareProfileBtn").addEventListener("click", async () => {
+        const url = window.location.href;
+        try {
+          if (navigator.share) {
+            await navigator.share({ title: "ASCAPDX Profile", url });
+            return;
+          }
+          await navigator.clipboard.writeText(url);
+          document.getElementById("status").textContent = "Profile link copied.";
+        } catch (_) {}
+      });
+      const syncTopAvatar = () => {
+        const main = document.getElementById("avatarPreview");
+        const top = document.getElementById("avatarPreviewTop");
+        if (main && top) top.src = main.src;
+      };
+      setInterval(syncTopAvatar, 500);
+      const profileMenuBtn = document.getElementById("profileMenuBtn");
+      const profileMenuDrop = document.getElementById("profileMenuDrop");
+      const profileCreateBtn = document.getElementById("profileCreateBtn");
+      profileMenuBtn.addEventListener("click", (event) => {
+        event.stopPropagation();
+        profileMenuDrop.classList.toggle("open");
+      });
+      document.addEventListener("click", () => {
+        profileMenuDrop.classList.remove("open");
+      });
+      if (profileCreateBtn) {
+        profileCreateBtn.addEventListener("click", () => {
+          window.location.href = "/groups";
+        });
+      }
+    })();
   </script>
+  <div id="toastContainer"></div>
 </body>
 </html>
 

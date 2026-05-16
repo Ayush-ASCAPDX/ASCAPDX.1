@@ -278,7 +278,7 @@
       grid-template-columns: repeat(3, minmax(0, 1fr));
       align-items: center;
       border-top: 1px solid rgba(255, 255, 255, 0.05);
-      padding: 0 30px;
+      padding: 0 10px;
     }
 
     .feed-action {
@@ -286,23 +286,28 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 16px;
+      gap: 12px;
       border-radius: 16px;
-      padding: 12px 8px;
+      padding: 12px 4px;
       color: #b4c4db;
       font-family: Georgia, "Times New Roman", serif;
-      font-size: 22px;
+      font-size: 18px;
       font-weight: 700;
       transition: background-color 160ms ease, color 160ms ease, transform 160ms ease;
     }
 
     .feed-action .material-symbols-outlined {
-      font-size: 42px;
+      font-size: 32px;
     }
 
     .feed-action:hover,
     .feed-action.liked {
       color: #78d2ff;
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .feed-action.disliked {
+      color: #ff8585;
       background: rgba(255, 255, 255, 0.04);
     }
 
@@ -532,7 +537,7 @@
       }
 
       .glass-card {
-        border-radius: 20px;
+        border-radius: 9px;
       }
 
       .feed-card-head {
@@ -814,7 +819,7 @@
       }
 
       .glass-card {
-        border-radius: 12px;
+        border-radius: 7px;
       }
 
       .feed-card-head {
@@ -913,6 +918,66 @@
         font-size: 35px;
       }
     }
+
+    /* Toast Notifications */
+    #toastContainer {
+      position: fixed;
+      bottom: calc(100px + env(safe-area-inset-bottom));
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 5000;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      pointer-events: none;
+      width: min(400px, 90vw);
+    }
+
+    .toast {
+      background: rgba(19, 40, 63, 0.95);
+      border: 1px solid rgba(116, 159, 207, 0.3);
+      backdrop-filter: blur(12px);
+      color: #d3e3ff;
+      padding: 16px 20px;
+      border-radius: 16px;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      animation: toast-in 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+      pointer-events: auto;
+    }
+
+    .toast.success {
+      border-left: 4px solid #43b8ea;
+    }
+
+    .toast.error {
+      border-left: 4px solid #ef4444;
+    }
+
+    @keyframes toast-in {
+      from {
+        opacity: 0;
+        transform: translateY(20px) scale(0.9);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    .toast-out {
+      animation: toast-out 0.3s ease forwards;
+    }
+
+    @keyframes toast-out {
+      to {
+        opacity: 0;
+        transform: translateY(-10px) scale(0.9);
+      }
+    }
   </style>
 </head>
 
@@ -923,7 +988,7 @@
         aria-label="Open menu">
         <span class="material-symbols-outlined header-icon">menu</span>
       </button>
-      <h1 class="brand-title">IndiChat</h1>
+      <h1 class="brand-title">Orbit</h1>
     </div>
     <div class="flex items-center gap-4 feed-header-actions">
       <button class="grid h-12 w-12 place-items-center transition-transform active:scale-95" type="button"
@@ -958,31 +1023,55 @@
 
 
 
-  <div class="fixed inset-0 z-[2000] hidden items-center justify-center bg-black/80 p-4 backdrop-blur-md"
+  <div
+    class="fixed inset-0 z-[3000] hidden flex-col justify-end bg-black/60 backdrop-blur-sm transition-opacity duration-300"
     id="shareModal">
-    <div class="share-dialog p-6">
-      <h3 class="mb-4 text-xl font-bold">Share Post</h3>
-      <div class="mb-4">
-        <div class="mb-2 text-[10px] font-bold uppercase tracking-wider text-text-muted">Send to Chat</div>
-        <div id="shareUserList" class="max-h-[200px] space-y-2 overflow-y-auto pr-1"></div>
-      </div>
-      <div class="my-4 h-px bg-white/10"></div>
-      <div class="mb-3 text-[10px] font-bold uppercase tracking-wider text-text-muted">Socials & Links</div>
-      <div class="mb-6 grid grid-cols-3 gap-3">
-        <a href="#" class="share-tile flex flex-col items-center gap-1.5 p-3 text-[10px]" id="shareWhatsApp"
-          target="_blank" rel="noreferrer">
-          <span class="material-symbols-outlined text-xl">chat</span><span>WhatsApp</span>
-        </a>
-        <a href="#" class="share-tile flex flex-col items-center gap-1.5 p-3 text-[10px]" id="shareInstagram"
-          target="_blank" rel="noreferrer">
-          <span class="material-symbols-outlined text-xl">photo_camera</span><span>Insta</span>
-        </a>
-        <button class="share-tile flex flex-col items-center gap-1.5 p-3 text-[10px]" id="shareCopyLink" type="button">
-          <span class="material-symbols-outlined text-xl">link</span><span>Link</span>
+    <div
+      class="share-sheet w-full rounded-t-[32px] bg-[#12263f] p-8 pb-12 shadow-[0_-8px_32px_rgba(0,0,0,0.4)] transition-transform duration-300 translate-y-full"
+      id="shareSheet">
+      <div class="mx-auto mb-8 h-1.5 w-12 rounded-full bg-white/20"></div>
+
+      <div class="mb-8 flex items-center justify-between">
+        <h3 class="text-2xl font-bold text-white">Share to...</h3>
+        <button id="closeShareModalBtn"
+          class="flex h-10 w-10 items-center justify-center rounded-full bg-white/5 text-white transition-colors hover:bg-white/10">
+          <span class="material-symbols-outlined">close</span>
         </button>
       </div>
-      <button type="button" class="w-full rounded-2xl bg-white/5 py-4 font-bold transition-colors hover:bg-white/10"
-        id="closeShareModalBtn">Cancel</button>
+
+      <div class="mb-10">
+        <div class="mb-4 text-xs font-bold uppercase tracking-widest text-primary/70">Internal Chat</div>
+        <div id="shareUserList" class="flex gap-6 overflow-x-auto pb-4 scrollbar-hide">
+          <!-- User tiles will be injected here -->
+        </div>
+      </div>
+
+      <div class="mb-10">
+        <div class="mb-6 text-xs font-bold uppercase tracking-widest text-primary/70">External Apps</div>
+        <div class="grid grid-cols-3 gap-6">
+          <button id="shareWhatsApp" class="flex flex-col items-center gap-3 transition-transform hover:scale-105">
+            <div
+              class="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#25D366]/10 text-[#25D366] ring-1 ring-[#25D366]/20">
+              <span class="material-symbols-outlined text-3xl">chat</span>
+            </div>
+            <span class="text-xs font-medium text-white/80">WhatsApp</span>
+          </button>
+          <button id="shareInstagram" class="flex flex-col items-center gap-3 transition-transform hover:scale-105">
+            <div
+              class="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#E1306C]/10 text-[#E1306C] ring-1 ring-[#E1306C]/20">
+              <span class="material-symbols-outlined text-3xl">photo_camera</span>
+            </div>
+            <span class="text-xs font-medium text-white/80">Instagram</span>
+          </button>
+          <button id="shareCopyLink" class="flex flex-col items-center gap-3 transition-transform hover:scale-105">
+            <div
+              class="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/5 text-white/90 ring-1 ring-white/10">
+              <span class="material-symbols-outlined text-3xl">content_copy</span>
+            </div>
+            <span class="text-xs font-medium text-white/80">Copy Link</span>
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -999,11 +1088,54 @@
       id="ctxCopyLink" type="button">
       <span class="material-symbols-outlined text-sm">link</span> <span>Copy Link</span>
     </button>
+    <button class="w-full flex items-center gap-3 rounded-xl p-3 text-sm transition-colors hover:bg-white/5"
+      id="ctxSave" type="button">
+      <span class="material-symbols-outlined text-sm">bookmark</span> <span id="ctxSaveText">Save Post</span>
+    </button>
+    <button class="w-full flex items-center gap-3 rounded-xl p-3 text-sm transition-colors hover:bg-white/5"
+      id="ctxEdit" style="display: none;" type="button">
+      <span class="material-symbols-outlined text-sm">edit</span> <span>Edit Post</span>
+    </button>
     <button
       class="w-full flex items-center gap-3 rounded-xl p-3 text-sm text-red-400 transition-colors hover:bg-red-400/10"
       id="ctxDelete" style="display: none;" type="button">
       <span class="material-symbols-outlined text-sm">delete</span> <span>Delete Post</span>
     </button>
+  </div>
+
+  <div class="fixed inset-0 z-[2600] hidden items-center justify-center bg-black/80 p-4 backdrop-blur-md"
+    id="editPostModal">
+    <div class="share-dialog p-6 w-full max-w-lg">
+      <h3 class="mb-4 text-xl font-bold">Edit Post</h3>
+      <textarea id="editPostContent"
+        class="w-full h-40 bg-white/5 border border-white/10 rounded-xl p-4 text-white focus:outline-none focus:border-primary transition-colors resize-none mb-4"
+        placeholder="What's on your mind?"></textarea>
+      <div class="flex gap-3">
+        <button type="button" class="flex-1 rounded-2xl bg-white/5 py-4 font-bold transition-colors hover:bg-white/10"
+          id="closeEditModalBtn">Cancel</button>
+        <button type="button"
+          class="flex-1 rounded-2xl bg-primary py-4 font-bold text-primary-ink transition-opacity hover:opacity-90"
+          id="saveEditBtn">Save Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="fixed inset-0 z-[2700] hidden items-center justify-center bg-black/80 p-4 backdrop-blur-md"
+    id="confirmModal">
+    <div class="share-dialog p-8 w-full max-w-sm text-center">
+      <div class="w-16 h-16 bg-red-400/10 text-red-400 rounded-full flex items-center justify-center mx-auto mb-6">
+        <span class="material-symbols-outlined text-3xl" style="color: #ef4444;">warning</span>
+      </div>
+      <h3 class="mb-2 text-xl font-bold" id="confirmTitle">Are you sure?</h3>
+      <p class="text-muted mb-8" id="confirmMessage">This action cannot be undone.</p>
+      <div class="flex gap-3">
+        <button type="button" class="flex-1 rounded-2xl bg-white/5 py-4 font-bold transition-colors hover:bg-white/10"
+          id="confirmCancelBtn">No, Cancel</button>
+        <button type="button"
+          class="flex-1 rounded-2xl bg-red-500 py-4 font-bold text-white transition-opacity hover:opacity-90"
+          id="confirmOkBtn">Yes, Delete</button>
+      </div>
+    </div>
   </div>
 
   <div id="storyViewerModal" class="fixed inset-0 z-[3000] hidden bg-black flex-col text-white" aria-hidden="true">
@@ -1013,16 +1145,19 @@
       <span id="storyViewerName" class="font-semibold text-sm drop-shadow-md"></span>
       <span id="storyViewerTime" class="text-xs text-white/70 drop-shadow-md ml-2"></span>
     </div>
-    <button id="closeStoryViewer" class="absolute top-4 right-4 z-10 text-white text-3xl drop-shadow-md opacity-80 hover:opacity-100">&times;</button>
-    
-    <div class="relative w-full h-full flex items-center justify-center bg-black/90 select-none" id="storyMediaContainer">
+    <button id="closeStoryViewer"
+      class="absolute top-4 right-4 z-10 text-white text-3xl drop-shadow-md opacity-80 hover:opacity-100">&times;</button>
+
+    <div class="relative w-full h-full flex items-center justify-center bg-black/90 select-none"
+      id="storyMediaContainer">
       <div id="storyLoader" class="absolute hidden">
         <span class="material-symbols-outlined animate-spin text-4xl text-white/50">progress_activity</span>
       </div>
       <img id="storyViewerImage" class="max-w-full max-h-full object-contain hidden" src="">
       <video id="storyViewerVideo" class="max-w-full max-h-full object-contain hidden" playsinline></video>
-      <div id="storyCaption" class="absolute bottom-12 left-0 w-full text-center p-4 text-[1.1rem] font-medium drop-shadow-lg"></div>
-      
+      <div id="storyCaption"
+        class="absolute bottom-12 left-0 w-full text-center p-4 text-[1.1rem] font-medium drop-shadow-lg"></div>
+
       <div id="storyTapLeft" class="absolute top-0 left-0 w-[30%] h-full z-20 cursor-pointer"></div>
       <div id="storyTapRight" class="absolute top-0 right-0 w-[70%] h-full z-20 cursor-pointer"></div>
     </div>
@@ -1037,6 +1172,7 @@
   </script>
   <script src="/nav-loader.js" defer></script>
   <script src="/mobile-nav.js" defer></script>
+  <div id="toastContainer"></div>
 </body>
 
 </html>

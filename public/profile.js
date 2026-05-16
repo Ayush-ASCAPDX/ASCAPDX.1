@@ -24,10 +24,69 @@
   const profilePlanMetaEl = document.getElementById("profilePlanMeta");
   const usernameDisplayEl = document.getElementById("usernameDisplay");
   const bioCountEl = document.getElementById("bioCount");
+  const toastContainer = document.getElementById("toastContainer");
+
+  function showToast(message, type = "success") {
+    if (!toastContainer) return;
+    const toast = document.createElement("div");
+    toast.className = `toast ${type}`;
+    const icon = type === "success" ? "check_circle" : "error";
+    toast.innerHTML = `
+      <span class="material-symbols-outlined">${icon}</span>
+      <span class="font-medium">${message}</span>
+    `;
+    toastContainer.appendChild(toast);
+    setTimeout(() => {
+      toast.classList.add("toast-out");
+      setTimeout(() => toast.remove(), 300);
+    }, 3000);
+  }
+
+  const confirmModal = document.getElementById("confirmModal");
+  const confirmTitle = document.getElementById("confirmTitle");
+  const confirmMessage = document.getElementById("confirmMessage");
+  const confirmCancelBtn = document.getElementById("confirmCancelBtn");
+  const confirmOkBtn = document.getElementById("confirmOkBtn");
+
+  function showConfirm(title, message, okText = "Yes, Remove") {
+    return new Promise((resolve) => {
+      if (!confirmModal) return resolve(false);
+      confirmTitle.textContent = title;
+      confirmMessage.textContent = message;
+      confirmOkBtn.textContent = okText;
+      confirmModal.classList.remove("hidden");
+      confirmModal.classList.add("flex");
+
+      const cleanup = (val) => {
+        confirmModal.classList.add("hidden");
+        confirmModal.classList.remove("flex");
+        confirmOkBtn.onclick = null;
+        confirmCancelBtn.onclick = null;
+        resolve(val);
+      };
+
+      confirmOkBtn.onclick = () => cleanup(true);
+      confirmCancelBtn.onclick = () => cleanup(false);
+      confirmModal.onclick = (e) => { if (e.target === confirmModal) cleanup(false); };
+    });
+  }
 
   function setStatus(message, isError = true) {
     statusEl.style.color = isError ? "#fca5a5" : "#86efac";
     statusEl.textContent = message;
+  }
+
+  const profileMenuBtn = document.getElementById("profileMenuBtn");
+  const profileMenuDrop = document.getElementById("profileMenuDrop");
+
+  if (profileMenuBtn && profileMenuDrop) {
+    profileMenuBtn.onclick = (e) => {
+      e.stopPropagation();
+      profileMenuDrop.classList.toggle("active");
+    };
+    document.addEventListener("click", () => {
+      profileMenuDrop.classList.remove("active");
+    });
   }
 
   if (!statusEl) {
@@ -289,4 +348,89 @@
     profilePlanMetaEl.textContent = (data.user.membershipTier || "free").toUpperCase();
     setStatus(data.message || "Membership upgraded.", false);
   });
+
+  // --- SAVED POSTS LOGIC ---
+  const openSavedBtn = document.getElementById("openSavedBtn");
+  const closeSavedBtn = document.getElementById("closeSavedBtn");
+  const savedPostsModal = document.getElementById("savedPostsModal");
+  const savedPostsContainer = document.getElementById("savedPostsContainer");
+
+  if (openSavedBtn && isOwnProfile) {
+    openSavedBtn.onclick = async () => {
+      savedPostsModal.classList.remove("hidden");
+      savedPostsModal.classList.add("flex");
+      await loadSavedPosts();
+    };
+  } else if (openSavedBtn) {
+    openSavedBtn.style.display = "none";
+  }
+
+  if (closeSavedBtn) {
+    closeSavedBtn.onclick = () => {
+      savedPostsModal.classList.add("hidden");
+      savedPostsModal.classList.remove("flex");
+    };
+  }
+
+  async function loadSavedPosts() {
+    savedPostsContainer.innerHTML = '<div class="text-center py-10"><span class="material-symbols-outlined animate-spin text-4xl text-primary/50">progress_activity</span></div>';
+    try {
+      const res = await authFetch("/api/posts/saved");
+      const posts = await res.json();
+      if (res.ok && posts.length > 0) {
+        savedPostsContainer.innerHTML = "";
+        posts.forEach(post => {
+          savedPostsContainer.appendChild(buildSavedPostElement(post));
+        });
+      } else {
+        savedPostsContainer.innerHTML = '<p class="text-center text-muted py-10 italic">No saved posts yet.</p>';
+      }
+    } catch (err) {
+      savedPostsContainer.innerHTML = '<p class="text-center text-red-400 py-10">Failed to load saved posts.</p>';
+    }
+  }
+
+  function buildSavedPostElement(post) {
+    const card = document.createElement("div");
+    card.className = "bg-white/5 border border-white/10 rounded-2xl p-5 space-y-4";
+    
+    const avatar = post.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(post.author || post.username || "U")}&background=15324f&color=d3e3ff`;
+    const date = post.timestamp ? new Date(post.timestamp).toLocaleDateString() : "Recently";
+    
+    card.innerHTML = `
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <img src="${avatar}" class="w-10 h-10 rounded-full object-cover border border-white/10">
+          <div>
+            <div class="font-bold text-sm">${post.author || post.username}</div>
+            <div class="text-xs text-muted">${date}</div>
+          </div>
+        </div>
+        <button class="unsave-btn text-primary hover:text-primary/80 transition-colors">
+          <span class="material-symbols-outlined text-xl">bookmark_added</span>
+        </button>
+      </div>
+      <p class="text-lg leading-relaxed">${post.content}</p>
+      ${post.imageUrl ? `<img src="${post.imageUrl}" class="w-full aspect-video object-cover rounded-xl border border-white/10">` : ""}
+    `;
+
+    card.querySelector(".unsave-btn").onclick = async () => {
+      const confirmed = await showConfirm("Remove Saved Post?", "Do you want to remove this post from your saved list?");
+      if (!confirmed) return;
+      try {
+        const res = await authFetch(`/api/posts/${post._id}/save`, { method: "POST" });
+        if (res.ok) {
+          card.remove();
+          showToast("Post removed from saved.");
+          if (savedPostsContainer.children.length === 0) {
+            savedPostsContainer.innerHTML = '<p class="text-center text-muted py-10 italic">No saved posts yet.</p>';
+          }
+        }
+      } catch (_) {
+        showToast("Error unsaving post.", "error");
+      }
+    };
+
+    return card;
+  }
 })();

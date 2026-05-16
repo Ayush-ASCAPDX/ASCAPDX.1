@@ -537,23 +537,44 @@
     document.querySelectorAll(".theme-option").forEach(opt => {
       listen(opt, "click", async () => {
         const theme = opt.getAttribute("data-theme");
+        const activeChat = selectedUser;
         
-        // Apply globally immediately
-        applyChatBackground(null, theme);
+        // Apply locally immediately
+        applyChatBackground(activeChat, theme);
+        
+        // Update local 'me' object immediately
+        if (me) {
+          if (activeChat) {
+            if (!me.chatBackgrounds) me.chatBackgrounds = {};
+            me.chatBackgrounds[activeChat] = theme;
+          } else {
+            me.globalChatBackground = theme;
+          }
+        }
         
         if (themeModal) themeModal.classList.add("hidden");
         
-        // Save as global background to backend
+        // Save to backend
         try {
+          const payload = { background: theme };
+          if (activeChat) {
+            payload.withUser = activeChat;
+          } else {
+            // If no chat is active (should be blocked by guard anyway), 
+            // we could explicitly request global, but the user wants per-person.
+            payload.isGlobal = true; 
+          }
+
           const res = await authFetch("/api/chat-background", {
             method: "PUT",
-            body: JSON.stringify({ background: theme })
+            body: JSON.stringify(payload)
           });
           if (res.ok) {
             const data = await res.json();
             if (me) {
               me.globalChatBackground = data.globalChatBackground;
               me.chatBackgrounds = data.chatBackgrounds;
+              localStorage.setItem("user", JSON.stringify(me));
             }
           }
         } catch (err) {
@@ -718,20 +739,20 @@
 
   function updatePresenceIndicator() {
     if (!selectedUser) {
-      presenceTextEl.textContent = "Offline";
-      videoCallBtn.disabled = true;
-      deleteConversationBtn.disabled = true;
-      chatMenuBtn.disabled = true;
+      if (presenceTextEl) presenceTextEl.textContent = "Offline";
+      if (videoCallBtn) videoCallBtn.disabled = true;
+      if (deleteConversationBtn) deleteConversationBtn.disabled = true;
+      if (chatMenuBtn) chatMenuBtn.disabled = true;
       updateChatHeaderAvatar(null, false);
       return;
     }
 
     const user = usersPresence[selectedUser];
     const isOnline = !!user?.online;
-    presenceTextEl.textContent = isOnline ? "Online" : "Offline";
-    videoCallBtn.disabled = !isOnline;
-    deleteConversationBtn.disabled = false;
-    chatMenuBtn.disabled = false;
+    if (presenceTextEl) presenceTextEl.textContent = isOnline ? "Online" : "Offline";
+    if (videoCallBtn) videoCallBtn.disabled = !isOnline;
+    if (deleteConversationBtn) deleteConversationBtn.disabled = false;
+    if (chatMenuBtn) chatMenuBtn.disabled = false;
     updateChatHeaderAvatar(user, isOnline);
   }
 
@@ -1404,8 +1425,23 @@
     const bgClasses = ["bg-sunset", "bg-midnight", "bg-ocean", "bg-forest", "bg-lavender", "bg-dark-solid"];
     chatLayoutEl.classList.remove(...bgClasses);
 
-    // Priority: 1. Force (user just clicked) 2. Per-chat (if exists) 3. Global 4. Default
-    const theme = forceTheme || (username && me?.chatBackgrounds?.[username]) || me?.globalChatBackground || "default";
+    let theme = "default";
+    const normUser = username ? String(username).toLowerCase() : null;
+
+    if (forceTheme) {
+      theme = forceTheme;
+    } else if (normUser && me?.chatBackgrounds) {
+      // Try to find the theme for this specific user (case-insensitive)
+      let foundTheme = null;
+      try {
+        Object.entries(me.chatBackgrounds).forEach(([k, v]) => {
+          if (k.toLowerCase() === normUser) foundTheme = v;
+        });
+      } catch (e) {}
+      theme = foundTheme || me.globalChatBackground || "default";
+    } else {
+      theme = me?.globalChatBackground || "default";
+    }
     
     if (theme && theme !== "default") {
       chatLayoutEl.classList.add(`bg-${theme}`);

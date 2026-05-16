@@ -1,6 +1,6 @@
 {
-  "name": "Ascapdx Chat",
-  "short_name": "IndiaChat",
+  "name": "Orbit",
+  "short_name": "Orbit",
   "description": "Private real-time chat with media and calls.",
   "start_url": "/chat",
   "scope": "/",
