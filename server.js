@@ -102,8 +102,8 @@ function toSafeUser(user) {
     name: user.name,
     bio: user.bio || "",
     avatarUrl: user.avatarUrl || "",
-    privateChat: !!user.privateChat,
-    allowedChatUsers: Array.isArray(user.allowedChatUsers) ? user.allowedChatUsers : [],
+    globalChatBackground: user.globalChatBackground || "default",
+    chatBackgrounds: user.chatBackgrounds instanceof Map ? Object.fromEntries(user.chatBackgrounds) : (user.chatBackgrounds || {}),
     membershipTier: user.membershipTier || "free",
     membershipValidUntil: user.membershipValidUntil || null
   };
@@ -260,32 +260,11 @@ function buildRtcConfig() {
 }
 
 async function canSendDirectMessage(fromUsername, toUsername) {
-  const recipient = await User.findOne({ username: toUsername }).select("username privateChat allowedChatUsers");
+  const recipient = await User.findOne({ username: toUsername }).select("username");
   if (!recipient) {
     return { ok: false, error: "User not found" };
   }
-
-  if (!recipient.privateChat) {
-    return { ok: true, recipient };
-  }
-
-  const allowList = new Set((recipient.allowedChatUsers || []).map((u) => normalizeUsername(u)));
-  if (allowList.has(normalizeUsername(fromUsername))) {
-    return { ok: true, recipient };
-  }
-
-  const hasHistory = await Message.exists({
-    $or: [
-      { from: fromUsername, to: toUsername },
-      { from: toUsername, to: fromUsername }
-    ]
-  });
-
-  if (hasHistory) {
-    return { ok: true, recipient };
-  }
-
-  return { ok: false, error: "This account accepts messages only from approved or existing chats." };
+  return { ok: true, recipient };
 }
 
 function authMiddleware(req, res, next) {
@@ -551,7 +530,7 @@ app.post("/api/login", async (req, res) => {
 
 app.get("/api/me", authMiddleware, async (req, res) => {
   const user = await User.findOne({ username: req.user.username })
-    .select("username name bio avatarUrl privateChat allowedChatUsers membershipTier membershipValidUntil");
+    .select("username name bio avatarUrl globalChatBackground chatBackgrounds membershipTier membershipValidUntil");
   if (!user) {
     return res.status(404).json({ error: "User not found" });
   }
@@ -560,7 +539,7 @@ app.get("/api/me", authMiddleware, async (req, res) => {
 
 app.get("/api/users", authMiddleware, async (req, res) => {
   const users = await User.find({ username: { $ne: req.user.username } })
-    .select("username name avatarUrl privateChat")
+    .select("username name avatarUrl")
     .sort({ username: 1 })
     .lean();
   return res.json(users);
@@ -716,11 +695,6 @@ app.put("/api/profile", authMiddleware, async (req, res) => {
     const name = (req.body.name || "").trim();
     const bio = (req.body.bio || "").trim();
     const avatarUrl = (req.body.avatarUrl || "").trim();
-    const privateChat = !!req.body.privateChat;
-    const rawAllowed = Array.isArray(req.body.allowedChatUsers) ? req.body.allowedChatUsers : [];
-    const allowedChatUsers = rawAllowed
-      .map((u) => normalizeUsername(u))
-      .filter((u) => !!u && u !== req.user.username);
 
     const user = await User.findOne({ username: req.user.username });
     if (!user) {
@@ -730,8 +704,6 @@ app.put("/api/profile", authMiddleware, async (req, res) => {
     if (name) user.name = name;
     user.bio = bio.slice(0, 280);
     user.avatarUrl = avatarUrl.slice(0, 2_000_000);
-    user.privateChat = privateChat;
-    user.allowedChatUsers = [...new Set(allowedChatUsers)];
     await user.save();
 
     if (onlineUsers[user.username]) {
@@ -744,6 +716,35 @@ app.put("/api/profile", authMiddleware, async (req, res) => {
     return res.json({ token, user: toSafeUser(user) });
   } catch (error) {
     return res.status(500).json({ error: "Unable to update profile" });
+  }
+});
+
+app.put("/api/chat-background", authMiddleware, async (req, res) => {
+  try {
+    const withUser = req.body.withUser ? normalizeUsername(req.body.withUser) : null;
+    const background = (req.body.background || "default").trim();
+
+    const user = await User.findOne({ username: req.user.username });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    if (withUser) {
+      if (!user.chatBackgrounds) user.chatBackgrounds = new Map();
+      user.chatBackgrounds.set(withUser, background);
+      user.markModified("chatBackgrounds");
+    } else {
+      user.globalChatBackground = background;
+    }
+    
+    await user.save();
+
+    return res.json({ 
+      ok: true, 
+      globalChatBackground: user.globalChatBackground,
+      chatBackgrounds: Object.fromEntries(user.chatBackgrounds || new Map()) 
+    });
+  } catch (error) {
+    console.error("Failed to update chat background:", error);
+    return res.status(500).json({ error: "Unable to update chat background" });
   }
 });
 

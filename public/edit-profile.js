@@ -71,10 +71,7 @@
         body: JSON.stringify({
           name: nameInput.value.trim(),
           bio: bioInput.value.trim(),
-          avatarUrl: avatarUrlEl.value.trim(),
-          // keep existing values for these so we don't accidentally overwrite them with empty
-          privateChat: me.privateChat,
-          allowedChatUsers: me.allowedChatUsers
+          avatarUrl: avatarUrlEl.value.trim()
         })
       });
 

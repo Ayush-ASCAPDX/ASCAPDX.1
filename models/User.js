@@ -23,13 +23,14 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: ""
   },
-  privateChat: {
-    type: Boolean,
-    default: false
+  globalChatBackground: {
+    type: String,
+    default: "default"
   },
-  allowedChatUsers: {
-    type: [String],
-    default: []
+  chatBackgrounds: {
+    type: Map,
+    of: String,
+    default: {}
   },
   membershipTier: {
     type: String,

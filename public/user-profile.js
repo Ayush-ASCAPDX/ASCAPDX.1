@@ -65,7 +65,7 @@
   try {
     const res = await authFetch(`/api/profile/${encodeURIComponent(targetUsername)}`);
     if (!res.ok) {
-      setStatus("User not found or is private.");
+      setStatus("User not found.");
       return;
     }
     const user = await res.json();

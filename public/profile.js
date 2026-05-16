@@ -15,8 +15,6 @@
   const bioEl = document.getElementById("bio");
   const avatarUrlEl = document.getElementById("avatarUrl");
   const avatarFileEl = document.getElementById("avatarFile");
-  const privateChatEl = document.getElementById("privateChat");
-  const allowedUsersEl = document.getElementById("allowedUsers");
   const avatarPreviewEl = document.getElementById("avatarPreview");
   const profileNameEl = document.getElementById("profileName");
   const profileTierEl = document.getElementById("profileTier");
@@ -24,7 +22,6 @@
   const profileBioPreviewEl = document.getElementById("profileBioPreview");
   const profileUsernameMetaEl = document.getElementById("profileUsernameMeta");
   const profilePlanMetaEl = document.getElementById("profilePlanMeta");
-  const profilePrivacyMetaEl = document.getElementById("profilePrivacyMeta");
   const usernameDisplayEl = document.getElementById("usernameDisplay");
   const bioCountEl = document.getElementById("bioCount");
 
@@ -47,7 +44,7 @@
       profileUser = await res.json();
       console.log("Client: Fetched profileUser data:", profileUser);
     } else {
-      setStatus("User profile not found or is private.");
+      setStatus("User profile not found.");
       return;
     }
   }
@@ -60,11 +57,9 @@
   function syncPreview() {
     const displayName = nameEl.value.trim() || profileUser.name || profileUser.username;
     const bioText = bioEl.value.trim();
-    const isPrivate = !!privateChatEl.checked;
     profileNameEl.textContent = displayName;
     profileHandleEl.textContent = `@${profileUser.username}`;
     profileUsernameMetaEl.textContent = `@${profileUser.username}`;
-    profilePrivacyMetaEl.textContent = isPrivate ? "Private chat" : "Open chat";
     profileBioPreviewEl.textContent = bioText || "Add a short bio so people in your chats and groups recognize you instantly.";
     bioCountEl.textContent = `${bioText.length} / 280`;
     const src = avatarUrlEl.value.trim() || profileUser.avatarUrl || avatarFallback(displayName);
@@ -83,8 +78,6 @@
   bioEl.value = profileUser.bio || "";
   avatarUrlEl.value = profileUser.avatarUrl || "";
   usernameDisplayEl.value = `@${profileUser.username}`;
-  privateChatEl.checked = !!profileUser.privateChat;
-  allowedUsersEl.value = (isOwnProfile && Array.isArray(profileUser.allowedChatUsers)) ? profileUser.allowedChatUsers.join(", ") : "";
   profileTierEl.textContent = `${(profileUser.membershipTier || "free").toUpperCase()} ${isOwnProfile ? "plan" : "member"}`;
   profilePlanMetaEl.textContent = (profileUser.membershipTier || "free").toUpperCase();
 
@@ -93,19 +86,8 @@
     bioEl.readOnly = true;
     avatarUrlEl.readOnly = true;
     avatarFileEl.style.display = "none";
-    privateChatEl.disabled = true;
-
-    const saveBtn = document.getElementById("profileForm").querySelector('button[type="submit"]');
-    if (saveBtn) saveBtn.style.display = "none";
-
     const upgradeBtn = document.getElementById("upgradeBtn");
     if (upgradeBtn) upgradeBtn.style.display = "none";
-
-    const allowedGroup = allowedUsersEl.closest(".form-group");
-    if (allowedGroup) allowedGroup.style.display = "none";
-
-    const privacyGroup = privateChatEl.closest(".form-group");
-    if (privacyGroup) privacyGroup.style.display = "none";
 
     // Add Block and Report buttons for other users
     const actionContainer = document.createElement("div");
@@ -251,7 +233,6 @@
   nameEl.addEventListener("input", syncPreview);
   bioEl.addEventListener("input", syncPreview);
   avatarUrlEl.addEventListener("input", syncPreview);
-  privateChatEl.addEventListener("change", syncPreview);
 
   avatarFileEl.addEventListener("change", () => {
     const file = avatarFileEl.files?.[0];
@@ -269,19 +250,12 @@
     event.preventDefault();
     setStatus("");
 
-    const allowedChatUsers = allowedUsersEl.value
-      .split(",")
-      .map((v) => v.trim().toLowerCase())
-      .filter(Boolean);
-
     const response = await authFetch("/api/profile", {
       method: "PUT",
       body: JSON.stringify({
         name: nameEl.value.trim(),
         bio: bioEl.value.trim(),
-        avatarUrl: avatarUrlEl.value.trim(),
-        privateChat: privateChatEl.checked,
-        allowedChatUsers
+        avatarUrl: avatarUrlEl.value.trim()
       })
     });
 
