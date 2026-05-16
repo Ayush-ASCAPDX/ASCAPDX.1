@@ -1,14 +1,16 @@
 <!DOCTYPE html>
 <html class="dark" lang="en">
+
 <head>
-  <meta charset="utf-8"/>
-  <meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport"/>
-  <meta name="theme-color" content="#031326"/>
+  <meta charset="utf-8" />
+  <meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport" />
+  <meta name="theme-color" content="#031326" />
   <title>IndiChat Feed</title>
   <script src="/theme.js"></script>
   <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
-  <link href="https://cdn.jsdelivr.net/npm/geist@1.3.0/dist/fonts/geist.min.css" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+    rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/geist@1.3.0/dist/fonts/geist.min.css" rel="stylesheet" />
   <script id="tailwind-config">
     tailwind.config = {
       darkMode: "class",
@@ -458,7 +460,7 @@
       font-size: 16px;
     }
 
-    body .mobile-global-nav a > .material-symbols-outlined {
+    body .mobile-global-nav a>.material-symbols-outlined {
       font-size: 36px;
     }
 
@@ -483,7 +485,7 @@
         padding-inline: 18px;
       }
 
-      .feed-header > div {
+      .feed-header>div {
         gap: 18px;
       }
 
@@ -620,7 +622,7 @@
         font-size: 13px;
       }
 
-      body .mobile-global-nav a > .material-symbols-outlined {
+      body .mobile-global-nav a>.material-symbols-outlined {
         font-size: 20px;
       }
 
@@ -634,7 +636,7 @@
         padding-inline: 12px;
       }
 
-      .feed-header > div {
+      .feed-header>div {
         gap: 10px;
       }
 
@@ -652,7 +654,7 @@
 
       .story,
       .story-avatar {
-        width: 64px;
+        width: 71px;
       }
 
       .story {
@@ -748,7 +750,7 @@
         padding-inline: 5px;
       }
 
-      .feed-header > div {
+      .feed-header>div {
         gap: 9px;
       }
 
@@ -780,7 +782,7 @@
 
       .story,
       .story-avatar {
-        width: 63px;
+        width: 81px;
       }
 
       .story {
@@ -790,7 +792,7 @@
       }
 
       .story-avatar {
-        height: 63px;
+        height: 81px;
         padding: 2px;
       }
 
@@ -913,58 +915,41 @@
     }
   </style>
 </head>
+
 <body class="bg-surface-deep">
   <header class="feed-header sticky top-0 z-50 flex w-full items-center justify-between px-[30px]">
     <div class="flex items-center gap-8">
-      <button class="grid h-12 w-12 place-items-center transition-transform active:scale-95" type="button" aria-label="Open menu">
+      <button class="grid h-12 w-12 place-items-center transition-transform active:scale-95" type="button"
+        aria-label="Open menu">
         <span class="material-symbols-outlined header-icon">menu</span>
       </button>
       <h1 class="brand-title">IndiChat</h1>
     </div>
     <div class="flex items-center gap-4 feed-header-actions">
-      <button class="grid h-12 w-12 place-items-center transition-transform active:scale-95" type="button" aria-label="Search feed">
+      <button class="grid h-12 w-12 place-items-center transition-transform active:scale-95" type="button"
+        aria-label="Search feed">
         <span class="material-symbols-outlined header-icon">search</span>
       </button>
-      <button class="grid h-12 w-12 place-items-center transition-transform active:scale-95" type="button" aria-label="Create post" onclick="window.navigateTo ? window.navigateTo('/create-post') : (window.location.href = '/create-post')">
+      <button class="grid h-12 w-12 place-items-center transition-transform active:scale-95" type="button"
+        aria-label="Create post"
+        onclick="window.navigateTo ? window.navigateTo('/create-post') : (window.location.href = '/create-post')">
         <span class="material-symbols-outlined header-icon">add</span>
       </button>
     </div>
   </header>
 
   <main class="feed-shell">
-    <section class="stories-row" aria-label="Stories">
-      <button class="story" type="button" onclick="window.navigateTo ? window.navigateTo('/create-post') : (window.location.href = '/create-post')">
+    <section class="stories-row" aria-label="Stories" id="storiesContainer">
+      <button class="story" type="button" onclick="document.getElementById('storyUploadInput').click()">
         <span class="story-avatar is-muted">
-          <img id="headerUserAvatar" alt="Your avatar" src="https://ui-avatars.com/api/?name=U&background=15324f&color=d3e3ff"/>
+          <img id="storyCurrentUserAvatar" alt="Your avatar"
+            src="https://ui-avatars.com/api/?name=U&background=15324f&color=d3e3ff" />
           <span class="story-add">+</span>
         </span>
         <span class="w-full truncate text-center text-[#95abc5]">Your Story</span>
       </button>
-      <div class="story">
-        <span class="story-avatar">
-          <img alt="Sarah" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDZUMjvFlM_6LCbG8i_4O59YxxvaxXXGRVpghVuHcOuqsy_kUhx4t3-139tQHmdzGJkXiQ7MCAMLEF82f_anP1nf0mHscYW9D20TlwU2xSJJCtjpwID4Gfr12v6g_xB0AECqozmP3r18o02KaIlcdZib8hL1VlhR0W1TwX-hHo_eAxwrlNOtz5rQri0sAVARipZD4wpgh4NRWrj54UYFxDgStKZb6b9JN8gQuvJZGdd1QGehsAmFOa3YLOcaVWXZKYmWULn4FdN9iBq"/>
-        </span>
-        <span class="w-full truncate text-center">Sarah</span>
-      </div>
-      <div class="story">
-        <span class="story-avatar">
-          <img alt="David" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDDHC0U0cT9TqgXB4PZmqmRPnlpIXlGD6mwYInCCiAB-OZLzYYixHf1Giei9XDP0ykKYWb52d-LBvbM0uYQr-1-mijDgYKApWmF83lXWK97I0iA8_-c_aTUiG9SvVY_cwwD2F3PbZIq6YOs-AhaZlksdU9-ENW5Qj9AgKoORKXXA-ZcfZ0vBiWT7wYS6Njop_UKLt2PTGCXtyR3uM1UrUMj-6kZ9PetdKanarjcVIM3iY-qGt57qRuB2X5gwiY0aK9xNL6lc7G6qj--"/>
-        </span>
-        <span class="w-full truncate text-center">David</span>
-      </div>
-      <div class="story">
-        <span class="story-avatar">
-          <img alt="Elena" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDZUMjvFlM_6LCbG8i_4O59YxxvaxXXGRVpghVuHcOuqsy_kUhx4t3-139tQHmdzGJkXiQ7MCAMLEF82f_anP1nf0mHscYW9D20TlwU2xSJJCtjpwID4Gfr12v6g_xB0AECqozmP3r18o02KaIlcdZib8hL1VlhR0W1TwX-hHo_eAxwrlNOtz5rQri0sAVARipZD4wpgh4NRWrj54UYFxDgStKZb6b9JN8gQuvJZGdd1QGehsAmFOa3YLOcaVWXZKYmWULn4FdN9iBq"/>
-        </span>
-        <span class="w-full truncate text-center">Elena</span>
-      </div>
-      <div class="story">
-        <span class="story-avatar">
-          <img alt="Marc" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDDHC0U0cT9TqgXB4PZmqmRPnlpIXlGD6mwYInCCiAB-OZLzYYixHf1Giei9XDP0ykKYWb52d-LBvbM0uYQr-1-mijDgYKApWmF83lXWK97I0iA8_-c_aTUiG9SvVY_cwwD2F3PbZIq6YOs-AhaZlksdU9-ENW5Qj9AgKoORKXXA-ZcfZ0vBiWT7wYS6Njop_UKLt2PTGCXtyR3uM1UrUMj-6kZ9PetdKanarjcVIM3iY-qGt57qRuB2X5gwiY0aK9xNL6lc7G6qj--"/>
-        </span>
-        <span class="w-full truncate text-center">Marc</span>
-      </div>
     </section>
+    <input type="file" id="storyUploadInput" accept="image/*,video/*" class="hidden">
 
     <section class="feed-list" id="feedContainer" aria-label="Feed posts"></section>
 
@@ -973,7 +958,8 @@
 
 
 
-  <div class="fixed inset-0 z-[2000] hidden items-center justify-center bg-black/80 p-4 backdrop-blur-md" id="shareModal">
+  <div class="fixed inset-0 z-[2000] hidden items-center justify-center bg-black/80 p-4 backdrop-blur-md"
+    id="shareModal">
     <div class="share-dialog p-6">
       <h3 class="mb-4 text-xl font-bold">Share Post</h3>
       <div class="mb-4">
@@ -983,33 +969,63 @@
       <div class="my-4 h-px bg-white/10"></div>
       <div class="mb-3 text-[10px] font-bold uppercase tracking-wider text-text-muted">Socials & Links</div>
       <div class="mb-6 grid grid-cols-3 gap-3">
-        <a href="#" class="share-tile flex flex-col items-center gap-1.5 p-3 text-[10px]" id="shareWhatsApp" target="_blank" rel="noreferrer">
+        <a href="#" class="share-tile flex flex-col items-center gap-1.5 p-3 text-[10px]" id="shareWhatsApp"
+          target="_blank" rel="noreferrer">
           <span class="material-symbols-outlined text-xl">chat</span><span>WhatsApp</span>
         </a>
-        <a href="#" class="share-tile flex flex-col items-center gap-1.5 p-3 text-[10px]" id="shareInstagram" target="_blank" rel="noreferrer">
+        <a href="#" class="share-tile flex flex-col items-center gap-1.5 p-3 text-[10px]" id="shareInstagram"
+          target="_blank" rel="noreferrer">
           <span class="material-symbols-outlined text-xl">photo_camera</span><span>Insta</span>
         </a>
         <button class="share-tile flex flex-col items-center gap-1.5 p-3 text-[10px]" id="shareCopyLink" type="button">
           <span class="material-symbols-outlined text-xl">link</span><span>Link</span>
         </button>
       </div>
-      <button type="button" class="w-full rounded-2xl bg-white/5 py-4 font-bold transition-colors hover:bg-white/10" id="closeShareModalBtn">Cancel</button>
+      <button type="button" class="w-full rounded-2xl bg-white/5 py-4 font-bold transition-colors hover:bg-white/10"
+        id="closeShareModalBtn">Cancel</button>
     </div>
   </div>
 
   <div id="postContextMenu" class="fixed z-[2500] hidden min-w-[180px] p-2">
-    <button class="w-full flex items-center gap-3 rounded-xl p-3 text-sm transition-colors hover:bg-white/5" id="ctxLike" type="button">
+    <button class="w-full flex items-center gap-3 rounded-xl p-3 text-sm transition-colors hover:bg-white/5"
+      id="ctxLike" type="button">
       <span class="material-symbols-outlined text-sm">favorite</span> <span id="ctxLikeText">Like Post</span>
     </button>
-    <button class="w-full flex items-center gap-3 rounded-xl p-3 text-sm transition-colors hover:bg-white/5" id="ctxShare" type="button">
+    <button class="w-full flex items-center gap-3 rounded-xl p-3 text-sm transition-colors hover:bg-white/5"
+      id="ctxShare" type="button">
       <span class="material-symbols-outlined text-sm">share</span> <span>Share Post</span>
     </button>
-    <button class="w-full flex items-center gap-3 rounded-xl p-3 text-sm transition-colors hover:bg-white/5" id="ctxCopyLink" type="button">
+    <button class="w-full flex items-center gap-3 rounded-xl p-3 text-sm transition-colors hover:bg-white/5"
+      id="ctxCopyLink" type="button">
       <span class="material-symbols-outlined text-sm">link</span> <span>Copy Link</span>
     </button>
-    <button class="w-full flex items-center gap-3 rounded-xl p-3 text-sm text-red-400 transition-colors hover:bg-red-400/10" id="ctxDelete" style="display: none;" type="button">
+    <button
+      class="w-full flex items-center gap-3 rounded-xl p-3 text-sm text-red-400 transition-colors hover:bg-red-400/10"
+      id="ctxDelete" style="display: none;" type="button">
       <span class="material-symbols-outlined text-sm">delete</span> <span>Delete Post</span>
     </button>
+  </div>
+
+  <div id="storyViewerModal" class="fixed inset-0 z-[3000] hidden bg-black flex-col text-white" aria-hidden="true">
+    <div class="absolute top-0 left-0 w-full p-4 flex gap-1 z-10" id="storyProgressContainer"></div>
+    <div class="absolute top-6 left-4 flex items-center gap-2 z-10">
+      <img id="storyViewerAvatar" class="w-8 h-8 rounded-full border border-white/20 object-cover" src="" alt="">
+      <span id="storyViewerName" class="font-semibold text-sm drop-shadow-md"></span>
+      <span id="storyViewerTime" class="text-xs text-white/70 drop-shadow-md ml-2"></span>
+    </div>
+    <button id="closeStoryViewer" class="absolute top-4 right-4 z-10 text-white text-3xl drop-shadow-md opacity-80 hover:opacity-100">&times;</button>
+    
+    <div class="relative w-full h-full flex items-center justify-center bg-black/90 select-none" id="storyMediaContainer">
+      <div id="storyLoader" class="absolute hidden">
+        <span class="material-symbols-outlined animate-spin text-4xl text-white/50">progress_activity</span>
+      </div>
+      <img id="storyViewerImage" class="max-w-full max-h-full object-contain hidden" src="">
+      <video id="storyViewerVideo" class="max-w-full max-h-full object-contain hidden" playsinline></video>
+      <div id="storyCaption" class="absolute bottom-12 left-0 w-full text-center p-4 text-[1.1rem] font-medium drop-shadow-lg"></div>
+      
+      <div id="storyTapLeft" class="absolute top-0 left-0 w-[30%] h-full z-20 cursor-pointer"></div>
+      <div id="storyTapRight" class="absolute top-0 right-0 w-[70%] h-full z-20 cursor-pointer"></div>
+    </div>
   </div>
 
   <script src="/auth.js"></script>
@@ -1022,4 +1038,5 @@
   <script src="/nav-loader.js" defer></script>
   <script src="/mobile-nav.js" defer></script>
 </body>
+
 </html>

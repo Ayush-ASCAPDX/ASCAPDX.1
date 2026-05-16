@@ -107,19 +107,76 @@
     .share-user-avatar { width: 36px; height: 36px; border-radius: 999px; object-fit: cover; border: 1px solid var(--line); }
     .share-user-name { font-weight: 600; font-size: 0.95rem; color: var(--text); }
     .modal-btn { width: 100%; border: none; border-radius: 16px; padding: 14px; cursor: pointer; font-weight: 700; font-size: 1rem; background: var(--surface-2); border: 1px solid var(--line); color: var(--text); }
+
+    /* Header Install Button */
+    .header-install-btn {
+      background: transparent;
+      border: none;
+      color: var(--brand);
+      cursor: pointer;
+      padding: 6px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s, transform 0.1s;
+    }
+    .header-install-btn:hover {
+      background: var(--surface-2);
+      transform: scale(1.05);
+    }
+    .header-install-btn.hidden {
+      display: none;
+    }
   </style>
 </head>
 <body class="chat-page">
 <div class="app-shell">
   <div class="sidebar">
-    <div class="sidebar-title chat-sidebar-title">
+    <div class="sidebar-title chat-sidebar-title" style="display: flex; justify-content: space-between; align-items: center;">
       <span class="chat-sidebar-brand">ASCAPDX Chat</span>
+      <button id="headerInstallBtn" class="header-install-btn hidden" aria-label="Install App" title="Install App">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="7 10 12 15 17 10"></polyline>
+          <line x1="12" y1="15" x2="12" y2="3"></line>
+        </svg>
+      </button>
     </div>
     <div class="sidebar-user" id="currentUser"></div>
     <div class="sidebar-search-wrap">
       <input id="userSearchInput" class="sidebar-search" type="search" placeholder="Search chats..." aria-label="Search chats">
     </div>
-    <div class="sessions-list" id="usersList"></div>
+    <div class="sessions-list" id="usersList">
+      <div class="skeleton-row">
+        <div class="skeleton-avatar"></div>
+        <div class="skeleton-text">
+          <div class="skeleton-line"></div>
+          <div class="skeleton-line short"></div>
+        </div>
+      </div>
+      <div class="skeleton-row">
+        <div class="skeleton-avatar"></div>
+        <div class="skeleton-text">
+          <div class="skeleton-line"></div>
+          <div class="skeleton-line short"></div>
+        </div>
+      </div>
+      <div class="skeleton-row">
+        <div class="skeleton-avatar"></div>
+        <div class="skeleton-text">
+          <div class="skeleton-line"></div>
+          <div class="skeleton-line short"></div>
+        </div>
+      </div>
+      <div class="skeleton-row">
+        <div class="skeleton-avatar"></div>
+        <div class="skeleton-text">
+          <div class="skeleton-line"></div>
+          <div class="skeleton-line short"></div>
+        </div>
+      </div>
+    </div>
     <div class="sidebar-actions">
       <button id="installAppBtn" class="secondary-btn" hidden>Install App</button>
       <button id="groupsBtn" class="secondary-btn">Groups</button>

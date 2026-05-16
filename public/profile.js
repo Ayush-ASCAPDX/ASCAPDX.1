@@ -69,6 +69,14 @@
     bioCountEl.textContent = `${bioText.length} / 280`;
     const src = avatarUrlEl.value.trim() || profileUser.avatarUrl || avatarFallback(displayName);
     avatarPreviewEl.src = src;
+
+    // Remove skeleton classes once data is loaded
+    profileNameEl.classList.remove("skeleton");
+    profileHandleEl.classList.remove("skeleton");
+    profileBioPreviewEl.classList.remove("skeleton");
+    avatarPreviewEl.classList.remove("skeleton-avatar");
+    const topAvatar = document.getElementById("avatarPreviewTop");
+    if (topAvatar) topAvatar.classList.remove("skeleton-avatar");
   }
 
   nameEl.value = profileUser.name || "";
@@ -172,26 +180,67 @@
     // Place buttons outside (after) the bio card
     profileBioPreviewEl.parentElement.after(actionContainer);
   } else {
-    // For your own profile, add a button to navigate to the main settings page
+    // For your own profile, add nicely styled buttons
     const btnGroup = document.createElement("div");
     btnGroup.style.display = "flex";
-    btnGroup.style.gap = "0.5rem";
-    btnGroup.style.marginTop = "1rem";
+    btnGroup.style.flexDirection = "column";
+    btnGroup.style.gap = "12px";
+    btnGroup.style.marginTop = "24px";
+    btnGroup.style.marginBottom = "24px";
+
+    const styleButton = (btn, isPrimary = false, isDanger = false) => {
+      btn.style.width = "100%";
+      btn.style.padding = "14px";
+      btn.style.borderRadius = "16px";
+      btn.style.border = isDanger ? "1px solid #ef4444" : isPrimary ? "none" : "1px solid var(--line)";
+      btn.style.background = isDanger ? "rgba(239, 68, 68, 0.1)" : isPrimary ? "var(--primary)" : "var(--surface-2)";
+      btn.style.color = isDanger ? "#ef4444" : isPrimary ? "#fff" : "var(--text)";
+      btn.style.fontSize = "1.05rem";
+      btn.style.fontWeight = "700";
+      btn.style.cursor = "pointer";
+      btn.style.transition = "all 0.2s ease";
+      btn.style.display = "flex";
+      btn.style.alignItems = "center";
+      btn.style.justifyContent = "center";
+      btn.style.gap = "8px";
+
+      btn.onmouseenter = () => {
+        btn.style.transform = "translateY(-2px)";
+        if (isPrimary) btn.style.boxShadow = "0 4px 14px rgba(67, 184, 234, 0.4)";
+      };
+      btn.onmouseleave = () => {
+        btn.style.transform = "translateY(0)";
+        if (isPrimary) btn.style.boxShadow = "none";
+      };
+    };
 
     const editBtn = document.createElement("button");
     editBtn.type = "button";
-    editBtn.className = "btn-secondary";
-    editBtn.textContent = "Account Settings";
+    editBtn.innerHTML = `<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg> Account Settings`;
+    styleButton(editBtn, true);
     editBtn.onclick = () => window.navigateTo ? window.navigateTo("/settings") : window.location.href = "/settings";
 
     const backBtn = document.createElement("button");
     backBtn.type = "button";
-    backBtn.className = "btn-secondary";
-    backBtn.textContent = "Back to Chat";
+    backBtn.innerHTML = `<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg> Back to Chat`;
+    styleButton(backBtn);
     backBtn.onclick = () => window.navigateTo ? window.navigateTo("/chat") : window.location.href = "/chat";
+
+    const logoutBtn = document.createElement("button");
+    logoutBtn.type = "button";
+    logoutBtn.innerHTML = `<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg> Log Out`;
+    styleButton(logoutBtn, false, true);
+    logoutBtn.onclick = () => {
+      if (typeof logout === 'function') logout();
+      else {
+        localStorage.removeItem("token");
+        window.location.href = "/";
+      }
+    };
 
     btnGroup.appendChild(editBtn);
     btnGroup.appendChild(backBtn);
+    btnGroup.appendChild(logoutBtn);
 
     // Place buttons outside (after) the bio card
     profileBioPreviewEl.parentElement.after(btnGroup);

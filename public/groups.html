@@ -255,6 +255,14 @@
       .join-btn { font-size: 0.66rem; padding: 5px 7px; }
     }
     @media (min-width: 640px) { .groups-shell { padding-top: 16px; } .brand-name { font-size: 2.1rem; } .heading-row h2 { font-size: 2.2rem; } }
+    .skeleton-discover {
+      animation: pulse 1.5s infinite;
+      pointer-events: none;
+    }
+    .skeleton-discover .discover-item-avatar { background: rgba(216, 228, 255, 0.6); border: none; }
+    .skeleton-discover-title { height: 12px; width: 60%; background: rgba(216, 228, 255, 0.6); border-radius: 6px; margin: 4px 0; }
+    .skeleton-discover-sub { height: 10px; width: 40%; background: rgba(216, 228, 255, 0.6); border-radius: 6px; }
+    .skeleton-discover-btn { width: 50px; height: 26px; background: rgba(216, 228, 255, 0.6); border-radius: 10px; }
   </style>
 </head>
 <body class="group-ui-page">
@@ -276,7 +284,33 @@
     </header>
     <div class="status-row" id="groupsStatus"></div>
 
-    <section class="group-list" id="discoverList"></section>
+    <section class="group-list" id="discoverList">
+      <!-- Skeleton Loaders -->
+      <div class="discover-item skeleton-discover">
+        <div class="discover-item-avatar"></div>
+        <div class="skeleton-discover-title"></div>
+        <div class="skeleton-discover-btn" style="grid-row: span 2;"></div>
+        <div class="skeleton-discover-sub"></div>
+      </div>
+      <div class="discover-item skeleton-discover">
+        <div class="discover-item-avatar"></div>
+        <div class="skeleton-discover-title"></div>
+        <div class="skeleton-discover-btn" style="grid-row: span 2;"></div>
+        <div class="skeleton-discover-sub"></div>
+      </div>
+      <div class="discover-item skeleton-discover">
+        <div class="discover-item-avatar"></div>
+        <div class="skeleton-discover-title"></div>
+        <div class="skeleton-discover-btn" style="grid-row: span 2;"></div>
+        <div class="skeleton-discover-sub"></div>
+      </div>
+      <div class="discover-item skeleton-discover">
+        <div class="discover-item-avatar"></div>
+        <div class="skeleton-discover-title"></div>
+        <div class="skeleton-discover-btn" style="grid-row: span 2;"></div>
+        <div class="skeleton-discover-sub"></div>
+      </div>
+    </section>
   </div>
   <div class="modal-backdrop" id="createGroupModal" aria-hidden="true">
     <form class="create-modal" id="createGroupForm">

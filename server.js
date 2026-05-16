@@ -12,6 +12,7 @@ const Message = require("./models/Message");
 const User = require("./models/User");
 const Group = require("./models/Group");
 const GroupMessage = require("./models/GroupMessage");
+const Story = require("./models/Story");
 
 // Post Model for Feed
 const PostSchema = new mongoose.Schema({
@@ -358,6 +359,10 @@ app.get("/profile", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "profile.html"));
 });
 
+app.get("/edit-profile", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "edit-profile.html"));
+});
+
 app.get("/user-profile", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "user-profile.html"));
 });
@@ -654,6 +659,55 @@ app.delete("/api/posts/:id", authMiddleware, async (req, res) => {
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: "Failed to delete post" });
+  }
+});
+
+app.post("/api/stories", authMiddleware, async (req, res) => {
+  try {
+    const { mediaUrl, mediaType, caption } = req.body;
+    if (!mediaUrl) return res.status(400).json({ error: "Media URL is required." });
+    
+    // Check if user already has an active story
+    const existingStory = await Story.findOne({ username: req.user.username });
+    if (existingStory) {
+      return res.status(400).json({ error: "You can only post one story per day." });
+    }
+    
+    const user = await User.findOne({ username: req.user.username });
+    const story = await Story.create({
+      username: req.user.username,
+      author: user?.name || req.user.username,
+      avatarUrl: user?.avatarUrl,
+      mediaUrl,
+      mediaType: mediaType || "image",
+      caption: caption || ""
+    });
+    res.status(201).json(story);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to create story" });
+  }
+});
+
+app.get("/api/stories", authMiddleware, async (req, res) => {
+  try {
+    const stories = await Story.find().sort({ createdAt: 1 }).lean();
+    
+    const grouped = {};
+    for (const story of stories) {
+      if (!grouped[story.username]) {
+        grouped[story.username] = {
+          username: story.username,
+          author: story.author,
+          avatarUrl: story.avatarUrl,
+          items: []
+        };
+      }
+      grouped[story.username].items.push(story);
+    }
+    
+    res.json(Object.values(grouped));
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch stories" });
   }
 });
 

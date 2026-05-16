@@ -341,6 +341,10 @@ window.initFeedPage = async function() {
       statusEl.style.display = "flex";
       statusEl.innerHTML = '<p class="text-lg italic">No updates yet.</p>';
     }
+
+    // --- STORIES INITIALIZATION ---
+    await loadStories();
+
   } catch (_) {
     statusEl.style.display = "flex";
     statusEl.innerHTML = '<p class="text-lg italic">Failed to load feed.</p>';
@@ -357,3 +361,213 @@ if (document.readyState === "loading") {
 } else {
   startFeedPageWhenReady();
 }
+
+// --- STORIES LOGIC ---
+const storiesContainer = document.getElementById("storiesContainer");
+const storyUploadInput = document.getElementById("storyUploadInput");
+const storyViewerModal = document.getElementById("storyViewerModal");
+let allStories = []; 
+let currentStoryUserIndex = 0;
+let currentStoryItemIndex = 0;
+let storyTimeout = null;
+const STORY_DURATION = 5000;
+
+window.loadStories = async function() {
+  try {
+    const res = await authFetch("/api/stories");
+    if (res.ok) {
+      allStories = await res.json();
+      renderStoriesCarousel();
+    }
+  } catch (e) {
+    console.error("Failed to load stories", e);
+  }
+};
+
+function renderStoriesCarousel() {
+  if (!storiesContainer) return;
+  const currentUser = getUser();
+  const currentUserStoryIndex = allStories.findIndex(g => g.username === currentUser?.username);
+  const currentUserStory = currentUserStoryIndex !== -1 ? allStories[currentUserStoryIndex] : null;
+  const yourStoryOnClick = currentUserStory ? `openStoryViewer(${currentUserStoryIndex})` : "document.getElementById('storyUploadInput').click()";
+  
+  let html = `
+    <button class="story" type="button" onclick="${yourStoryOnClick}">
+      <span class="story-avatar ${currentUserStory ? 'has-story' : 'is-muted'}" style="${currentUserStory ? 'border: 2px solid #52c6f6; padding: 2px;' : ''}">
+        <img alt="Your avatar" src="${currentUser?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser?.username || 'U')}&background=15324f&color=d3e3ff`}" />
+        ${currentUserStory ? '' : '<span class="story-add">+</span>'}
+      </span>
+      <span class="w-full truncate text-center text-[#95abc5]">Your Story</span>
+    </button>
+  `;
+
+  allStories.forEach((group, userIndex) => {
+    if (group.username === currentUser?.username) return; 
+    const avatar = group.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(group.author || group.username)}&background=15324f&color=d3e3ff`;
+    html += `
+      <div class="story cursor-pointer" onclick="openStoryViewer(${userIndex})">
+        <span class="story-avatar has-story" style="border: 2px solid #52c6f6; padding: 2px; border-radius: 999px;">
+          <img alt="${group.author || group.username}" src="${avatar}" />
+        </span>
+        <span class="w-full truncate text-center">${group.author || group.username}</span>
+      </div>
+    `;
+  });
+
+  storiesContainer.innerHTML = html;
+}
+
+if (storyUploadInput) {
+  storyUploadInput.addEventListener("change", async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    e.target.value = "";
+    
+    const isVideo = file.type.startsWith("video/");
+    const fileKind = isVideo ? "video" : "image";
+    
+    const statusEl = document.getElementById("status");
+    statusEl.style.display = "flex";
+    statusEl.textContent = `Uploading story... 0%`;
+    
+    try {
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", "/api/uploads");
+      xhr.setRequestHeader("Authorization", `Bearer ${getToken()}`);
+      xhr.setRequestHeader("X-File-Name", encodeURIComponent(file.name));
+      xhr.setRequestHeader("X-File-Kind", fileKind);
+      
+      xhr.upload.onprogress = (ev) => {
+        if (ev.lengthComputable) {
+          const pct = Math.round((ev.loaded / ev.total) * 100);
+          statusEl.textContent = `Uploading story... ${pct}%`;
+        }
+      };
+      
+      const uploadResponse = await new Promise((resolve, reject) => {
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) resolve(xhr.responseText);
+          else reject(new Error("Upload failed"));
+        };
+        xhr.onerror = () => reject(new Error("Network error"));
+        xhr.send(file);
+      });
+      
+      let mediaUrl = uploadResponse;
+      try { const j = JSON.parse(uploadResponse); if(j.url) mediaUrl = j.url; } catch(e){}
+      
+      statusEl.textContent = "Publishing story...";
+      const res = await authFetch("/api/stories", {
+        method: "POST",
+        body: JSON.stringify({ mediaUrl, mediaType: fileKind })
+      });
+      
+      if (res.ok) {
+        statusEl.style.display = "none";
+        loadStories();
+      } else {
+        throw new Error("Failed to publish");
+      }
+    } catch (err) {
+      statusEl.textContent = "Error: " + err.message;
+      setTimeout(() => { statusEl.style.display = "none"; }, 3000);
+    }
+  });
+}
+
+window.openStoryViewer = function(userIndex) {
+  if (!allStories[userIndex]) return;
+  currentStoryUserIndex = userIndex;
+  currentStoryItemIndex = 0;
+  storyViewerModal.classList.remove("hidden");
+  storyViewerModal.classList.add("flex");
+  renderStoryItem();
+};
+
+function closeStoryViewer() {
+  storyViewerModal.classList.add("hidden");
+  storyViewerModal.classList.remove("flex");
+  clearTimeout(storyTimeout);
+  const vid = document.getElementById("storyViewerVideo");
+  if(vid) vid.pause();
+}
+
+function renderStoryItem() {
+  clearTimeout(storyTimeout);
+  const userGroup = allStories[currentStoryUserIndex];
+  if (!userGroup) {
+    closeStoryViewer();
+    return;
+  }
+  const story = userGroup.items[currentStoryItemIndex];
+  if (!story) {
+    if (currentStoryUserIndex + 1 < allStories.length) {
+      currentStoryUserIndex++;
+      currentStoryItemIndex = 0;
+      renderStoryItem();
+    } else {
+      closeStoryViewer();
+    }
+    return;
+  }
+
+  document.getElementById("storyViewerAvatar").src = userGroup.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(userGroup.author || userGroup.username)}`;
+  document.getElementById("storyViewerName").textContent = userGroup.author || userGroup.username;
+  
+  const progressContainer = document.getElementById("storyProgressContainer");
+  progressContainer.innerHTML = userGroup.items.map((_, idx) => `
+    <div class="h-1 flex-1 bg-white/30 rounded-full overflow-hidden">
+      <div class="h-full bg-white transition-all duration-100 ease-linear" 
+           style="width: ${idx < currentStoryItemIndex ? '100%' : '0%'}"></div>
+    </div>
+  `).join("");
+
+  const img = document.getElementById("storyViewerImage");
+  const vid = document.getElementById("storyViewerVideo");
+  img.classList.add("hidden");
+  vid.classList.add("hidden");
+  vid.pause();
+
+  const currentProgressBar = progressContainer.children[currentStoryItemIndex].firstElementChild;
+  requestAnimationFrame(() => {
+    currentProgressBar.style.transitionDuration = `${STORY_DURATION}ms`;
+    currentProgressBar.style.width = '100%';
+  });
+
+  if (story.mediaType === "video") {
+    vid.src = story.mediaUrl;
+    vid.classList.remove("hidden");
+    vid.play().catch(e => console.log("Video autoplay prevented", e));
+    vid.onended = nextStory;
+  } else {
+    img.src = story.mediaUrl;
+    img.classList.remove("hidden");
+    storyTimeout = setTimeout(nextStory, STORY_DURATION);
+  }
+}
+
+function nextStory() {
+  currentStoryItemIndex++;
+  renderStoryItem();
+}
+
+function prevStory() {
+  if (currentStoryItemIndex > 0) {
+    currentStoryItemIndex--;
+    renderStoryItem();
+  } else if (currentStoryUserIndex > 0) {
+    currentStoryUserIndex--;
+    currentStoryItemIndex = allStories[currentStoryUserIndex].items.length - 1;
+    renderStoryItem();
+  }
+}
+
+const closeBtn = document.getElementById("closeStoryViewer");
+if (closeBtn) closeBtn.addEventListener("click", closeStoryViewer);
+
+const tapLeft = document.getElementById("storyTapLeft");
+if (tapLeft) tapLeft.addEventListener("click", prevStory);
+
+const tapRight = document.getElementById("storyTapRight");
+if (tapRight) tapRight.addEventListener("click", nextStory);
+

@@ -97,13 +97,29 @@
       .section-title{font-size:.84rem}
       .setting-item{font-size:1rem}
     }
+    .skeleton {
+      animation: pulse 1.5s infinite;
+      background: #1e3757 !important;
+      color: transparent !important;
+      border-radius: 8px;
+      min-width: 120px;
+      display: inline-block;
+    }
+    .skeleton-avatar {
+      animation: pulse 1.5s infinite;
+      background: #1e3757 !important;
+    }
+    .skeleton.bio-text {
+      min-height: 60px;
+      width: 100%;
+    }
   </style>
 </head>
 <body>
   <div class="profile-shell">
     <header class="topbar">
       <div class="brand-wrap">
-        <img class="top-avatar" id="avatarPreviewTop" src="https://images.unsplash.com/photo-1568602471122-7832951cc4c5?auto=format&fit=crop&w=120&q=80" alt="Avatar">
+        <img class="top-avatar skeleton-avatar" id="avatarPreviewTop" src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" alt="Avatar">
         <div class="brand">ASCAPDX</div>
       </div>
       <div style="display:flex;align-items:center;gap:10px;">
@@ -118,27 +134,27 @@
     <section class="hero">
       <div class="avatar-ring-wrap">
         <div class="avatar-ring">
-          <img id="avatarPreview" class="avatar-main" src="https://images.unsplash.com/photo-1568602471122-7832951cc4c5?auto=format&fit=crop&w=260&q=80" alt="Profile">
+          <img id="avatarPreview" class="avatar-main skeleton-avatar" src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" alt="Profile">
         </div>
         <span class="online-dot"></span>
       </div>
-      <h1 id="profileName" class="name">Alex Rivera</h1>
-      <p id="profileHandle" class="handle">@arivera_pdx</p>
+      <h1 id="profileName" class="name skeleton">Loading</h1>
+      <p id="profileHandle" class="handle skeleton">@loading</p>
     </section>
 
 
 
     <section class="bio-card">
       <div class="kicker">BIO</div>
-      <p id="profileBioPreview" class="bio-text">Full-stack developer and open-source enthusiast focused on secure communication tools.</p>
+      <p id="profileBioPreview" class="bio-text skeleton">Loading bio...</p>
     </section>
 
     <h2 class="section-title">ACCOUNT SETTINGS</h2>
     <section class="setting-list">
-      <a class="setting-item" href="/settings"><span>🛡 Account Security</span><span>›</span></a>
-      <a class="setting-item" href="/settings"><span>🔔 Notification Settings</span><span>›</span></a>
-      <a class="setting-item" href="/settings"><span>🛡 Privacy &amp; Safety</span><span>›</span></a>
-      <a class="setting-item" href="/settings"><span>❓ Help &amp; Support</span><span>›</span></a>
+      <a class="setting-item" href="/settings"><span style="display:flex;align-items:center;gap:8px;"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg> Account Security</span><span>›</span></a>
+      <a class="setting-item" href="/settings"><span style="display:flex;align-items:center;gap:8px;"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg> Notification Settings</span><span>›</span></a>
+      <a class="setting-item" href="/settings"><span style="display:flex;align-items:center;gap:8px;"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> Privacy &amp; Safety</span><span>›</span></a>
+      <a class="setting-item" href="/settings"><span style="display:flex;align-items:center;gap:8px;"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg> Help &amp; Support</span><span>›</span></a>
     </section>
 
     <p id="status"></p>
@@ -168,29 +184,7 @@
   <script src="/mobile-nav.js" defer></script>
   <script>
     document.getElementById("openEditorBtn").addEventListener("click", () => {
-      const nameEl = document.getElementById("name");
-      const bioEl = document.getElementById("bio");
-      const avatarUrlEl = document.getElementById("avatarUrl");
-      const privateChatEl = document.getElementById("privateChat");
-      const allowedUsersEl = document.getElementById("allowedUsers");
-
-      const nextName = window.prompt("Display name", nameEl.value || "");
-      if (nextName === null) return;
-      const nextBio = window.prompt("Bio", bioEl.value || "");
-      if (nextBio === null) return;
-      const nextAvatar = window.prompt("Avatar URL (optional)", avatarUrlEl.value || "");
-      if (nextAvatar === null) return;
-      const privateChoice = window.confirm("Enable private chat mode?");
-      const allowed = window.prompt("Allowed users (comma separated)", allowedUsersEl.value || "");
-      if (allowed === null) return;
-
-      nameEl.value = nextName;
-      bioEl.value = nextBio;
-      avatarUrlEl.value = nextAvatar;
-      privateChatEl.checked = privateChoice;
-      allowedUsersEl.value = allowed;
-
-      document.getElementById("profileForm").requestSubmit();
+      window.location.href = "/edit-profile";
     });
     document.getElementById("shareProfileBtn").addEventListener("click", async () => {
       const url = window.location.href;

@@ -170,7 +170,6 @@
       return `
         <a class="mobile-global-nav-link${isActive ? " is-active" : ""}" href="${item.href}" aria-label="${item.label}"${isActive ? ' aria-current="page"' : ""}>
           <span class="material-symbols-outlined mobile-global-nav-icon">${item.icon}</span>
-          <span class="mobile-global-nav-label">${item.label}</span>
         </a>
       `;
     }).join("");

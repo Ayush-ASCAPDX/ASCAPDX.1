@@ -1408,8 +1408,7 @@ function persistLastChat() {
 function restoreLastChat() {
   const params = new URLSearchParams(window.location.search);
   const requestedUser = (params.get("with") || "").trim().toLowerCase();
-  const lastUser = (localStorage.getItem(`chat:last:${currentUser}`) || "").trim().toLowerCase();
-  const username = requestedUser || lastUser;
+  const username = requestedUser;
 
   if (username && username !== currentUser && usersPresence[username]) {
     const user = usersPresence[username];
