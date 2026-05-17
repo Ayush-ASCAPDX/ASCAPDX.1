@@ -1,102 +1,365 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Profile - ASCAPDX</title>
+  <title>Profile - Orbit</title>
   <script src="/theme.js"></script>
   <link rel="stylesheet" href="/style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap"
+    rel="stylesheet">
   <style>
     :root {
-      --bg:#03152a;
-      --bg2:#011024;
-      --surface:#172a43;
-      --surface-2:#1b304b;
-      --line:#2f4762;
-      --text:#dbe8f8;
-      --muted:#95abc5;
-      --primary:#43b8ea;
-      --primary-ink:#08273a;
-      --ok:#2bd39f;
+      --bg: #03152a;
+      --bg2: #011024;
+      --surface: #172a43;
+      --surface-2: #1b304b;
+      --line: #2f4762;
+      --text: #dbe8f8;
+      --muted: #95abc5;
+      --primary: #43b8ea;
+      --primary-ink: #08273a;
+      --ok: #2bd39f;
     }
-    *{box-sizing:border-box}
-    body{
-      margin:0;
-      min-height:100dvh;
-      font-family:"Geist","Segoe UI",sans-serif;
-      color:var(--text);
+
+    * {
+      box-sizing: border-box
+    }
+
+    body {
+      margin: 0;
+      min-height: 100dvh;
+      font-family: "Geist", "Segoe UI", sans-serif;
+      color: var(--text);
       background:
-        radial-gradient(620px 260px at 50% 8%, rgba(67,184,234,.15), transparent 70%),
-        linear-gradient(180deg,var(--bg) 0%,var(--bg2) 100%);
-      padding-bottom:100px;
+        radial-gradient(620px 260px at 50% 8%, rgba(67, 184, 234, .15), transparent 70%),
+        linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%);
+      padding-bottom: 100px;
     }
-    .profile-shell{max-width:560px;margin:0 auto;padding:12px 16px 24px}
-    .topbar{display:flex;justify-content:space-between;align-items:center;padding:6px 0 20px}
-    .brand-wrap{display:flex;align-items:center;gap:12px}
-    .top-avatar{width:42px;height:42px;border-radius:999px;object-fit:cover;border:1px solid #355270}
-    .brand{font-size:2.7rem;font-weight:700;letter-spacing:-.02em;color:#7fd2ff}
-    .search-btn{border:none;background:transparent;color:#8ed5ff;font-size:1.65rem;cursor:pointer}
-    .menu-wrap{position:relative}
-    .menu-btn{border:none;background:transparent;color:#8ed5ff;font-size:1.65rem;cursor:pointer}
-    .menu-drop{
-      position:absolute;right:0;top:calc(100% + 8px);min-width:160px;
-      background:#152a44;border:1px solid #38577a;border-radius:12px;padding:6px;display:none;z-index:30;
+
+    .profile-shell {
+      max-width: 560px;
+      margin: 0 auto;
+      padding: 12px 16px 24px
     }
-    .menu-drop.open{display:block}
-    .menu-item{
-      width:100%;text-align:left;border:none;background:transparent;color:#dbe8f8;
-      padding:8px 10px;border-radius:8px;cursor:pointer;font-size:.9rem
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 0 20px
     }
-    .menu-item:hover{background:#1e3757}
 
-    .hero{text-align:center}
-    .avatar-ring-wrap{width:170px;height:170px;margin:0 auto;position:relative}
-    .avatar-ring{position:absolute;inset:0;border-radius:999px;padding:5px;background:linear-gradient(180deg,#8cd9ff,#5ec8ff)}
-    .avatar-main{width:100%;height:100%;border-radius:999px;object-fit:cover;border:6px solid #031730}
-    .online-dot{position:absolute;right:12px;bottom:12px;width:24px;height:24px;border-radius:999px;background:var(--ok);border:4px solid #031730}
-    .name{margin:16px 0 6px;font-size:2.2rem;font-weight:700;letter-spacing:-.02em}
-    .handle{font-family:"JetBrains Mono",monospace;font-size:1.05rem;color:#8fd4ff}
-
-    .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:18px}
-    .stat-card{background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:16px 8px;text-align:center}
-    .stat-label{font-family:"JetBrains Mono",monospace;font-size:.82rem;color:#9db0c8;letter-spacing:.08em}
-    .stat-value{margin-top:8px;font-size:2.5rem;font-weight:700;color:#7fd2ff}
-
-    .bio-card{margin-top:16px;background:var(--surface);border:1px solid var(--line);border-radius:28px;padding:20px}
-    .kicker{font-family:"JetBrains Mono",monospace;color:#8fd4ff;font-size:.9rem;letter-spacing:.12em}
-    .bio-text{margin:12px 0 0;font-size:1.9rem;line-height:1.5;color:#c3d3e8}
-
-    .actions{margin-top:16px;display:flex;flex-direction:column;gap:12px}
-    .primary-btn,.ghost-btn{height:60px;border-radius:999px;font-size:2rem;font-weight:600;cursor:pointer}
-    .primary-btn{background:var(--primary);border:none;color:var(--primary-ink)}
-    .ghost-btn{background:transparent;border:1px solid #7e9ab8;color:#c8d9ed}
-
-    .section-title{margin:16px 0 10px;font-family:"JetBrains Mono",monospace;font-size:1.1rem;letter-spacing:.12em;color:#8fd4ff}
-    .setting-list{display:flex;flex-direction:column;gap:10px}
-    .setting-item{display:flex;align-items:center;justify-content:space-between;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:16px 18px;color:#cfddef;font-size:1.7rem}
-
-    .hidden-form{display:none}
-    #status{min-height:20px;margin-top:10px;color:#86efac}
-
-    @media (max-width:480px){
-      .brand{font-size:2rem}
-      .avatar-ring-wrap{width:128px;height:128px}
-      .online-dot{width:20px;height:20px;right:8px;bottom:8px}
-      .name{font-size:1.85rem}
-      .handle{font-size:.9rem}
-      .stat-card{padding:13px 6px;border-radius:18px}
-      .stat-label{font-size:.67rem}
-      .stat-value{font-size:1.95rem}
-      .bio-card{padding:16px;border-radius:22px}
-      .kicker{font-size:.74rem}
-      .bio-text{font-size:1rem}
-      .primary-btn,.ghost-btn{height:52px;font-size:1.55rem}
-      .section-title{font-size:.84rem}
-      .setting-item{font-size:1rem}
+    .brand-wrap {
+      display: flex;
+      align-items: center;
+      gap: 12px
     }
+
+    .top-avatar {
+      width: 42px;
+      height: 42px;
+      border-radius: 999px;
+      object-fit: cover;
+      border: 1px solid #355270
+    }
+
+    .brand {
+      font-size: 2.7rem;
+      font-weight: 700;
+      letter-spacing: -.02em;
+      color: #7fd2ff
+    }
+
+    .search-btn {
+      border: none;
+      background: transparent;
+      color: #8ed5ff;
+      font-size: 1.65rem;
+      cursor: pointer
+    }
+
+    .menu-wrap {
+      position: relative
+    }
+
+    .menu-btn {
+      border: none;
+      background: transparent;
+      color: #8ed5ff;
+      font-size: 1.65rem;
+      cursor: pointer
+    }
+
+    .menu-drop {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 8px);
+      min-width: 160px;
+      background: #152a44;
+      border: 1px solid #38577a;
+      border-radius: 12px;
+      padding: 6px;
+      display: none;
+      z-index: 30;
+    }
+
+    .menu-drop.open {
+      display: block
+    }
+
+    .menu-item {
+      width: 100%;
+      text-align: left;
+      border: none;
+      background: transparent;
+      color: #dbe8f8;
+      padding: 8px 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: .9rem
+    }
+
+    .menu-item:hover {
+      background: #1e3757
+    }
+
+    .hero {
+      text-align: center
+    }
+
+    .avatar-ring-wrap {
+      width: 170px;
+      height: 170px;
+      margin: 0 auto;
+      position: relative
+    }
+
+    .avatar-ring {
+      position: absolute;
+      inset: 0;
+      border-radius: 999px;
+      padding: 5px;
+      background: linear-gradient(180deg, #8cd9ff, #5ec8ff)
+    }
+
+    .avatar-main {
+      width: 100%;
+      height: 100%;
+      border-radius: 999px;
+      object-fit: cover;
+      border: 6px solid #031730
+    }
+
+    .online-dot {
+      position: absolute;
+      right: 12px;
+      bottom: 12px;
+      width: 24px;
+      height: 24px;
+      border-radius: 999px;
+      background: var(--ok);
+      border: 4px solid #031730
+    }
+
+    .name {
+      margin: 16px 0 6px;
+      font-size: 2.2rem;
+      font-weight: 700;
+      letter-spacing: -.02em
+    }
+
+    .handle {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 1.05rem;
+      color: #8fd4ff
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 18px
+    }
+
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      padding: 16px 8px;
+      text-align: center
+    }
+
+    .stat-label {
+      font-family: "JetBrains Mono", monospace;
+      font-size: .82rem;
+      color: #9db0c8;
+      letter-spacing: .08em
+    }
+
+    .stat-value {
+      margin-top: 8px;
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: #7fd2ff
+    }
+
+    .bio-card {
+      margin-top: 16px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 28px;
+      padding: 20px
+    }
+
+    .kicker {
+      font-family: "JetBrains Mono", monospace;
+      color: #8fd4ff;
+      font-size: .9rem;
+      letter-spacing: .12em
+    }
+
+    .bio-text {
+      margin: 12px 0 0;
+      font-size: 1.9rem;
+      line-height: 1.5;
+      color: #c3d3e8
+    }
+
+    .actions {
+      margin-top: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px
+    }
+
+    .primary-btn,
+    .ghost-btn {
+      height: 60px;
+      border-radius: 999px;
+      font-size: 2rem;
+      font-weight: 600;
+      cursor: pointer
+    }
+
+    .primary-btn {
+      background: var(--primary);
+      border: none;
+      color: var(--primary-ink)
+    }
+
+    .ghost-btn {
+      background: transparent;
+      border: 1px solid #7e9ab8;
+      color: #c8d9ed
+    }
+
+    .section-title {
+      margin: 16px 0 10px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 1.1rem;
+      letter-spacing: .12em;
+      color: #8fd4ff
+    }
+
+    .setting-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px
+    }
+
+    .setting-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 16px 18px;
+      color: #cfddef;
+      font-size: 1.7rem
+    }
+
+    .hidden-form {
+      display: none
+    }
+
+    #status {
+      min-height: 20px;
+      margin-top: 10px;
+      color: #86efac
+    }
+
+    @media (max-width:480px) {
+      .brand {
+        font-size: 2rem
+      }
+
+      .avatar-ring-wrap {
+        width: 128px;
+        height: 128px
+      }
+
+      .online-dot {
+        width: 20px;
+        height: 20px;
+        right: 8px;
+        bottom: 8px
+      }
+
+      .name {
+        font-size: 1.85rem
+      }
+
+      .handle {
+        font-size: .9rem
+      }
+
+      .stat-card {
+        padding: 13px 6px;
+        border-radius: 18px
+      }
+
+      .stat-label {
+        font-size: .67rem
+      }
+
+      .stat-value {
+        font-size: 1.95rem
+      }
+
+      .bio-card {
+        padding: 16px;
+        border-radius: 22px
+      }
+
+      .kicker {
+        font-size: .74rem
+      }
+
+      .bio-text {
+        font-size: 1rem
+      }
+
+      .primary-btn,
+      .ghost-btn {
+        height: 52px;
+        font-size: 1.55rem
+      }
+
+      .section-title {
+        font-size: .84rem
+      }
+
+      .setting-item {
+        font-size: 1rem
+      }
+    }
+
     .skeleton {
       animation: pulse 1.5s infinite;
       background: #1e3757 !important;
@@ -105,10 +368,12 @@
       min-width: 120px;
       display: inline-block;
     }
+
     .skeleton-avatar {
       animation: pulse 1.5s infinite;
       background: #1e3757 !important;
     }
+
     .skeleton.bio-text {
       min-height: 60px;
       width: 100%;
@@ -143,12 +408,24 @@
       pointer-events: auto;
     }
 
-    .toast.success { border-left: 4px solid #43b8ea; }
-    .toast.error { border-left: 4px solid #ef4444; }
+    .toast.success {
+      border-left: 4px solid #43b8ea;
+    }
+
+    .toast.error {
+      border-left: 4px solid #ef4444;
+    }
 
     @keyframes toast-in {
-      from { opacity: 0; transform: translateY(20px) scale(0.9); }
-      to { opacity: 1; transform: translateY(0) scale(1); }
+      from {
+        opacity: 0;
+        transform: translateY(20px) scale(0.9);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
     }
 
     .toast-out {
@@ -156,7 +433,10 @@
     }
 
     @keyframes toast-out {
-      to { opacity: 0; transform: translateY(-10px) scale(0.9); }
+      to {
+        opacity: 0;
+        transform: translateY(-10px) scale(0.9);
+      }
     }
 
     .share-dialog {
@@ -171,13 +451,16 @@
     .custom-scrollbar::-webkit-scrollbar {
       width: 6px;
     }
+
     .custom-scrollbar::-webkit-scrollbar-track {
       background: transparent;
     }
+
     .custom-scrollbar::-webkit-scrollbar-thumb {
       background: rgba(255, 255, 255, 0.1);
       border-radius: 10px;
     }
+
     .custom-scrollbar::-webkit-scrollbar-thumb:hover {
       background: rgba(255, 255, 255, 0.2);
     }
@@ -250,18 +533,23 @@
     }
   </style>
 </head>
+
 <body>
   <div class="profile-shell">
     <header class="topbar">
       <div class="brand-wrap">
-        <img class="top-avatar skeleton-avatar" id="avatarPreviewTop" src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" alt="Avatar">
-        <div class="brand">ASCAPDX</div>
+        <img class="top-avatar skeleton-avatar" id="avatarPreviewTop"
+          src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" alt="Avatar">
+        <div class="brand">Orbit</div>
       </div>
       <div style="display:flex;align-items:center;gap:10px;">
-        <button id="themeToggleBtn" type="button" class="theme-toggle-btn theme-toggle-btn-inline" aria-label="Toggle theme">Light</button>
+        <button id="themeToggleBtn" type="button" class="theme-toggle-btn theme-toggle-btn-inline"
+          aria-label="Toggle theme">Light</button>
         <div class="menu-wrap">
           <button class="menu-btn" id="profileMenuBtn" aria-label="Menu">⋮</button>
-          <div class="menu-drop" id="profileMenuDrop">            <button class="menu-item" id="openEditorBtn" type="button">Edit Profile</button>            <button class="menu-item" id="openSavedBtn" type="button">Saved Posts</button>            <button class="menu-item" id="shareProfileBtn" type="button">Share Profile</button>          </div>
+          <div class="menu-drop" id="profileMenuDrop"> <button class="menu-item" id="openEditorBtn" type="button">Edit
+              Profile</button> <button class="menu-item" id="openSavedBtn" type="button">Saved Posts</button> <button
+              class="menu-item" id="shareProfileBtn" type="button">Share Profile</button> </div>
         </div>
       </div>
     </header>
@@ -269,7 +557,8 @@
     <section class="hero">
       <div class="avatar-ring-wrap">
         <div class="avatar-ring">
-          <img id="avatarPreview" class="avatar-main skeleton-avatar" src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" alt="Profile">
+          <img id="avatarPreview" class="avatar-main skeleton-avatar"
+            src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" alt="Profile">
         </div>
         <span class="online-dot"></span>
       </div>
@@ -286,10 +575,30 @@
 
     <h2 class="section-title">ACCOUNT SETTINGS</h2>
     <section class="setting-list">
-      <a class="setting-item" href="/settings"><span style="display:flex;align-items:center;gap:8px;"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg> Account Security</span><span>›</span></a>
-      <a class="setting-item" href="/settings"><span style="display:flex;align-items:center;gap:8px;"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg> Notification Settings</span><span>›</span></a>
-      <a class="setting-item" href="/settings"><span style="display:flex;align-items:center;gap:8px;"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> Privacy &amp; Safety</span><span>›</span></a>
-      <a class="setting-item" href="/settings"><span style="display:flex;align-items:center;gap:8px;"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg> Help &amp; Support</span><span>›</span></a>
+      <a class="setting-item" href="/settings"><span style="display:flex;align-items:center;gap:8px;"><svg width="18"
+            height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round" viewBox="0 0 24 24">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+          </svg> Account Security</span><span>›</span></a>
+      <a class="setting-item" href="/settings"><span style="display:flex;align-items:center;gap:8px;"><svg width="18"
+            height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round" viewBox="0 0 24 24">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+          </svg> Notification Settings</span><span>›</span></a>
+      <a class="setting-item" href="/settings"><span style="display:flex;align-items:center;gap:8px;"><svg width="18"
+            height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round" viewBox="0 0 24 24">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+          </svg> Privacy &amp; Safety</span><span>›</span></a>
+      <a class="setting-item" href="/settings"><span style="display:flex;align-items:center;gap:8px;"><svg width="18"
+            height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+          </svg> Help &amp; Support</span><span>›</span></a>
     </section>
 
     <p id="status"></p>
@@ -329,13 +638,16 @@
     .custom-scrollbar::-webkit-scrollbar {
       width: 6px;
     }
+
     .custom-scrollbar::-webkit-scrollbar-track {
       background: transparent;
     }
+
     .custom-scrollbar::-webkit-scrollbar-thumb {
       background: rgba(255, 255, 255, 0.1);
       border-radius: 10px;
     }
+
     .custom-scrollbar::-webkit-scrollbar-thumb:hover {
       background: rgba(255, 255, 255, 0.2);
     }
@@ -352,13 +664,15 @@
       <div class="flex gap-3">
         <button type="button" class="flex-1 rounded-2xl bg-white/5 py-4 font-bold transition-colors hover:bg-white/10"
           id="confirmCancelBtn">No, Cancel</button>
-        <button type="button" class="flex-1 rounded-2xl bg-red-500 py-4 font-bold text-white transition-opacity hover:opacity-90"
+        <button type="button"
+          class="flex-1 rounded-2xl bg-red-500 py-4 font-bold text-white transition-opacity hover:opacity-90"
           id="confirmOkBtn">Yes, Delete</button>
       </div>
     </div>
   </div>
 
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+    rel="stylesheet" />
 
   <script src="/auth.js" defer></script>
   <script src="/pwa.js" defer></script>
@@ -366,7 +680,7 @@
   <script src="/nav-loader.js" defer></script>
   <script src="/mobile-nav.js" defer></script>
   <script>
-    (function() {
+    (function () {
       document.getElementById("openEditorBtn").addEventListener("click", () => {
         window.location.href = "/edit-profile";
       });
@@ -374,12 +688,12 @@
         const url = window.location.href;
         try {
           if (navigator.share) {
-            await navigator.share({ title: "ASCAPDX Profile", url });
+            await navigator.share({ title: "Orbit Profile", url });
             return;
           }
           await navigator.clipboard.writeText(url);
           document.getElementById("status").textContent = "Profile link copied.";
-        } catch (_) {}
+        } catch (_) { }
       });
       const syncTopAvatar = () => {
         const main = document.getElementById("avatarPreview");
@@ -406,6 +720,5 @@
   </script>
   <div id="toastContainer"></div>
 </body>
+
 </html>
-
-

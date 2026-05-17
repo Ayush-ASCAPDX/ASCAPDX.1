@@ -1,24 +1,28 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Create Post - ASCAPDX</title>
+  <title>Create Post - Orbit</title>
   <script src="/theme.js"></script>
   <link rel="stylesheet" href="/style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap"
+    rel="stylesheet">
   <style>
     :root {
-      --bg:#03152a;
-      --surface:#172a43;
-      --line:#2f4762;
-      --text:#dbe8f8;
-      --muted:#95abc5;
-      --primary:#43b8ea;
-      --primary-ink:#08273a;
+      --bg: #03152a;
+      --surface: #172a43;
+      --line: #2f4762;
+      --text: #dbe8f8;
+      --muted: #95abc5;
+      --primary: #43b8ea;
+      --primary-ink: #08273a;
     }
+
     body {
       margin: 0;
       min-height: 100dvh;
@@ -27,72 +31,290 @@
       background: linear-gradient(180deg, var(--bg) 0%, #011024 100%);
       padding-bottom: 20px;
     }
-    .composer-shell { max-width: 600px; margin: 0 auto; padding: 20px 16px; position: relative; }
-    .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
-    .back-btn { background: none; border: none; color: var(--muted); font-size: 1.1rem; cursor: pointer; display: flex; align-items: center; gap: 8px; }
-    .composer-card { background: var(--surface); border: 1px solid var(--line); border-radius: 28px; padding: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.3); }
-    .composer-user-info { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
-    .composer-avatar { width: 44px; height: 44px; border-radius: 14px; border: 1.5px solid rgba(67, 184, 234, 0.4); object-fit: cover; }
-    .composer-name { font-weight: 700; font-size: 1.1rem; color: #fff; }
-    .post-input { width: 100%; background: transparent; border: none; color: #fff; font-size: 1.4rem; resize: none; min-height: 180px; padding: 8px 0; line-height: 1.4; outline: none; }
-    .image-preview-wrap { width: 100%; aspect-ratio: 16/9; border-radius: 20px; overflow: hidden; background: rgba(0,0,0,0.2); border: 1px solid var(--line); margin-bottom: 16px; display: none; position: relative; }
-    .image-preview-wrap.active { display: block; }
-    #postImagePreview { width: 100%; height: 100%; object-fit: cover; }
-    .remove-img { position: absolute; top: 12px; right: 12px; background: rgba(0,0,0,0.7); color: white; border: none; border-radius: 999px; width: 34px; height: 34px; cursor: pointer; }
-    
-    .mention-suggestions {
-      position: absolute; bottom: 80px; left: 28px; right: 28px; max-height: 200px; overflow-y: auto;
-      background: #1a2d47; border: 1px solid rgba(255,255,255,0.1); border-radius: 18px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 2010; display: none; padding: 6px;
+
+    .composer-shell {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px 16px;
+      position: relative;
     }
-    .mention-suggestions.active { display: block; }
-    .mention-item { padding: 12px 16px; cursor: pointer; color: #dbe8f8; font-size: 0.95rem; border-radius: 12px; display: flex; align-items: center; gap: 10px; }
-    .mention-item.selected { background: var(--primary); color: var(--primary-ink); }
 
-    .upload-progress-wrap { margin: 8px 0; display: flex; align-items: center; gap: 12px; }
-    .progress-track { flex: 1; height: 8px; background: rgba(255,255,255,0.08); border-radius: 10px; overflow: hidden; }
-    .progress-fill { height: 100%; width: 0%; background: var(--primary); transition: width 0.15s ease; }
-
-    .create-actions { 
-      display: flex; 
-      align-items: center; 
+    .topbar {
+      display: flex;
       justify-content: space-between;
-      gap: 8px; 
-      margin-top: 16px; 
-      padding-top: 12px;
-      border-top: 1px solid rgba(255,255,255,0.05);
+      align-items: center;
+      margin-bottom: 24px;
     }
-    .action-tools { display: flex; align-items: center; gap: 6px; }
-    .add-img-btn { background: rgba(255,255,255,0.05); border: 1px solid var(--line); color: var(--text); border-radius: 12px; padding: 2px 6px;
-; cursor: pointer; font-weight: 600; font-size: 0.85rem; transition: all 0.2s; }
-    .add-img-btn:hover { background: rgba(255,255,255,0.1); }
-    .submit-post-btn { background: var(--primary); color: var(--primary-ink); border: none; border-radius: 12px; padding: 8px 16px; cursor: pointer; font-weight: 800; font-size: 0.95rem; box-shadow: 0 4px 12px rgba(67, 184, 234, 0.2); }
-    .submit-post-btn:disabled { opacity: 0.5; }
+
+    .back-btn {
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 1.1rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .composer-card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 28px;
+      padding: 24px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+    }
+
+    .composer-user-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .composer-avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 14px;
+      border: 1.5px solid rgba(67, 184, 234, 0.4);
+      object-fit: cover;
+    }
+
+    .composer-name {
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: #fff;
+    }
+
+    .post-input {
+      width: 100%;
+      background: transparent;
+      border: none;
+      color: #fff;
+      font-size: 1.4rem;
+      resize: none;
+      min-height: 180px;
+      padding: 8px 0;
+      line-height: 1.4;
+      outline: none;
+    }
+
+    .image-preview-wrap {
+      width: 100%;
+      aspect-ratio: 16/9;
+      border-radius: 20px;
+      overflow: hidden;
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid var(--line);
+      margin-bottom: 16px;
+      display: none;
+      position: relative;
+    }
+
+    .image-preview-wrap.active {
+      display: block;
+    }
+
+    #postImagePreview {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .remove-img {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: rgba(0, 0, 0, 0.7);
+      color: white;
+      border: none;
+      border-radius: 999px;
+      width: 34px;
+      height: 34px;
+      cursor: pointer;
+    }
+
+    .mention-suggestions {
+      position: absolute;
+      bottom: 80px;
+      left: 28px;
+      right: 28px;
+      max-height: 200px;
+      overflow-y: auto;
+      background: #1a2d47;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 18px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      z-index: 2010;
+      display: none;
+      padding: 6px;
+    }
+
+    .mention-suggestions.active {
+      display: block;
+    }
+
+    .mention-item {
+      padding: 12px 16px;
+      cursor: pointer;
+      color: #dbe8f8;
+      font-size: 0.95rem;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .mention-item.selected {
+      background: var(--primary);
+      color: var(--primary-ink);
+    }
+
+    .upload-progress-wrap {
+      margin: 8px 0;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .progress-track {
+      flex: 1;
+      height: 8px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: var(--primary);
+      transition: width 0.15s ease;
+    }
+
+    .create-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-top: 16px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .action-tools {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .add-img-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--line);
+      color: var(--text);
+      border-radius: 12px;
+      padding: 2px 6px;
+      ;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.85rem;
+      transition: all 0.2s;
+    }
+
+    .add-img-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .submit-post-btn {
+      background: var(--primary);
+      color: var(--primary-ink);
+      border: none;
+      border-radius: 12px;
+      padding: 8px 16px;
+      cursor: pointer;
+      font-weight: 800;
+      font-size: 0.95rem;
+      box-shadow: 0 4px 12px rgba(67, 184, 234, 0.2);
+    }
+
+    .submit-post-btn:disabled {
+      opacity: 0.5;
+    }
 
     /* Circular Indicator Styles */
-    .indicator-wrap { display: flex; align-items: center; justify-content: center; position: relative; width: 32px; height: 32px; margin: 0 4px; }
-    .circle-svg { transform: rotate(-90deg); width: 100%; height: 100%; }
-    .circle-bg { fill: none; stroke: rgba(255,255,255,0.1); stroke-width: 3; }
-    .circle-progress { 
-      fill: none; 
-      stroke: var(--primary); 
-      stroke-width: 3; 
-      stroke-linecap: round; 
+    .indicator-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      width: 32px;
+      height: 32px;
+      margin: 0 4px;
+    }
+
+    .circle-svg {
+      transform: rotate(-90deg);
+      width: 100%;
+      height: 100%;
+    }
+
+    .circle-bg {
+      fill: none;
+      stroke: rgba(255, 255, 255, 0.1);
+      stroke-width: 3;
+    }
+
+    .circle-progress {
+      fill: none;
+      stroke: var(--primary);
+      stroke-width: 3;
+      stroke-linecap: round;
       transition: stroke-dashoffset 0.2s ease, stroke 0.2s ease;
     }
-    .char-remaining { 
-      position: absolute; font-size: 0.7rem; font-family: "JetBrains Mono", monospace; 
-      font-weight: 700; color: var(--muted);
+
+    .char-remaining {
+      position: absolute;
+      font-size: 0.7rem;
+      font-family: "JetBrains Mono", monospace;
+      font-weight: 700;
+      color: var(--muted);
     }
-    .over-limit { stroke: #ef4444 !important; }
-    .near-limit { stroke: #fbbf24 !important; }
-    
+
+    .over-limit {
+      stroke: #ef4444 !important;
+    }
+
+    .near-limit {
+      stroke: #fbbf24 !important;
+    }
+
     /* Shake Animation */
-    .shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
+    .shake {
+      animation: shake 0.4s cubic-bezier(.36, .07, .19, .97) both;
+    }
+
     @keyframes shake {
-      10%, 90% { transform: translate3d(-1px, 0, 0); }
-      20%, 80% { transform: translate3d(2px, 0, 0); }
-      30%, 50%, 70% { transform: translate3d(-3px, 0, 0); }
-      40%, 60% { transform: translate3d(3px, 0, 0); }
+
+      10%,
+      90% {
+        transform: translate3d(-1px, 0, 0);
+      }
+
+      20%,
+      80% {
+        transform: translate3d(2px, 0, 0);
+      }
+
+      30%,
+      50%,
+      70% {
+        transform: translate3d(-3px, 0, 0);
+      }
+
+      40%,
+      60% {
+        transform: translate3d(3px, 0, 0);
+      }
     }
 
     /* Emoji Picker Styles */
@@ -102,9 +324,9 @@
       right: 16px;
       width: 280px;
       background: #1a2d47;
-      border: 1px solid rgba(255,255,255,0.1);
+      border: 1px solid rgba(255, 255, 255, 0.1);
       border-radius: 20px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
       display: none;
       grid-template-columns: repeat(6, 1fr);
       gap: 8px;
@@ -113,18 +335,47 @@
       max-height: 240px;
       overflow-y: auto;
     }
-    .emoji-picker.active { display: grid; }
-    .emoji-item { font-size: 1.4rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform 0.1s; user-select: none; }
-    .emoji-item:hover { transform: scale(1.2); }
-    .emoji-picker::-webkit-scrollbar { width: 4px; }
-    .emoji-picker::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+
+    .emoji-picker.active {
+      display: grid;
+    }
+
+    .emoji-item {
+      font-size: 1.4rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.1s;
+      user-select: none;
+    }
+
+    .emoji-item:hover {
+      transform: scale(1.2);
+    }
+
+    .emoji-picker::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    .emoji-picker::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+    }
 
     @media (max-width: 480px) {
-      .composer-shell { padding: 16px 12px; width: 97vw; }
-      .post-input { font-size: 1.2rem; }
+      .composer-shell {
+        padding: 16px 12px;
+        width: 97vw;
+      }
+
+      .post-input {
+        font-size: 1.2rem;
+      }
     }
   </style>
 </head>
+
 <body>
   <div class="composer-shell">
     <header class="topbar">
@@ -144,14 +395,16 @@
       </div>
 
       <textarea id="postContent" class="post-input" placeholder="What's on your mind?"></textarea>
-      
+
       <div class="image-preview-wrap" id="imagePreviewWrap">
         <button class="remove-img" id="removeImgBtn">×</button>
         <img id="postImagePreview" src="" alt="Preview">
       </div>
 
       <div id="uploadProgressContainer" class="upload-progress-wrap hidden">
-        <div class="progress-track"><div id="uploadProgressBar" class="progress-fill"></div></div>
+        <div class="progress-track">
+          <div id="uploadProgressBar" class="progress-fill"></div>
+        </div>
         <span id="uploadProgressText" style="font-size: 0.75rem;">0%</span>
       </div>
 
@@ -160,15 +413,16 @@
 
       <div class="create-actions">
         <div class="action-tools">
-          <button class="add-img-btn" id="addImgBtn" title="Add Photo">🖼️ <span class="hide-mobile">Photo</span></button>
+          <button class="add-img-btn" id="addImgBtn" title="Add Photo">🖼️ <span
+              class="hide-mobile">Photo</span></button>
           <input type="file" id="postImageInput" accept="image/*" hidden>
           <button class="add-img-btn" id="emojiBtn" title="Add Emoji">😊</button>
 
           <div class="indicator-wrap" id="indicatorWrap">
             <svg class="circle-svg" viewBox="0 0 36 36">
-              <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-              <path id="progressCircle" class="circle-progress" 
-                stroke-dasharray="100, 100" stroke-dashoffset="100"
+              <path class="circle-bg"
+                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+              <path id="progressCircle" class="circle-progress" stroke-dasharray="100, 100" stroke-dashoffset="100"
                 d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
             </svg>
             <span id="charCountLabel" class="char-remaining"></span>
@@ -185,4 +439,5 @@
   <script src="/nav-loader.js" defer></script>
   <script src="/mobile-nav.js" defer></script>
 </body>
+
 </html>

@@ -1,15 +1,18 @@
-
 <!-- Group Chat -->
 
 <!DOCTYPE html>
 <html class="dark" lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Group Chat - ASCAPDX</title>
+  <title>Group Chat - Orbit</title>
   <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+    rel="stylesheet" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap"
+    rel="stylesheet" />
   <script>
     tailwind.config = {
       darkMode: "class",
@@ -45,12 +48,33 @@
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="icon" href="/favicon.ico">
   <style>
-    body { background-color: #051424; color: #d4e4fa; font-family: 'Geist', sans-serif; }
-    .glass-header { backdrop-filter: blur(20px); border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
-    .message-shadow { filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1)); }
-    .glow-active { box-shadow: 0 0 15px rgba(56, 189, 248, 0.2); }
-    #groupMessages::-webkit-scrollbar { width: 6px; }
-    #groupMessages::-webkit-scrollbar-thumb { background: #273647; border-radius: 10px; }
+    body {
+      background-color: #051424;
+      color: #d4e4fa;
+      font-family: 'Geist', sans-serif;
+    }
+
+    .glass-header {
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .message-shadow {
+      filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1));
+    }
+
+    .glow-active {
+      box-shadow: 0 0 15px rgba(56, 189, 248, 0.2);
+    }
+
+    #groupMessages::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    #groupMessages::-webkit-scrollbar-thumb {
+      background: #273647;
+      border-radius: 10px;
+    }
 
     @media (max-width: 768px) {
       #groupMessages {
@@ -63,53 +87,65 @@
     }
   </style>
 </head>
+
 <body class="flex flex-col h-screen overflow-hidden">
   <!-- Top Navigation Header -->
   <header class="sticky top-0 z-50 glass-header bg-surface/80 px-md h-20 flex items-center justify-between">
     <div class="flex items-center gap-sm">
-      <button onclick="window.location.href='/groups'" class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors active:scale-95">
+      <button onclick="window.location.href='/groups'"
+        class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors active:scale-95">
         <span class="material-symbols-outlined text-on-surface">arrow_back</span>
       </button>
       <div class="flex items-center gap-xs">
         <div class="relative">
-          <div id="groupInitial" class="w-10 h-10 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-bold border border-outline-variant">G</div>
+          <div id="groupInitial"
+            class="w-10 h-10 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-bold border border-outline-variant">
+            G</div>
           <div class="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 rounded-full border-2 border-surface"></div>
         </div>
         <div class="flex flex-col">
-          <span id="groupHeaderName" class="text-headline-md text-on-surface font-semibold tracking-tight">Loading Group...</span>
+          <span id="groupHeaderName" class="text-headline-md text-on-surface font-semibold tracking-tight">Loading
+            Group...</span>
         </div>
       </div>
     </div>
     <div class="flex items-center gap-xs">
-     
-      <button id="groupSettingsBtn" style="display:none;" class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors">
+
+      <button id="groupSettingsBtn" style="display:none;"
+        class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors">
         <span class="material-symbols-outlined text-on-surface-variant">settings</span>
       </button>
-      <button id="leaveGroupBtn"class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-red-500/20 text-red-400 transition-colors" title="Leave Group">
+      <button id="leaveGroupBtn"
+        class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-red-500/20 text-red-400 transition-colors"
+        title="Leave Group">
         <span class="material-symbols-outlined">logout</span>
       </button>
-      <button id="deleteGroupBtn" style="display:none;" class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-red-500/20 text-red-400 transition-colors">
+      <button id="deleteGroupBtn" style="display:none;"
+        class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-red-500/20 text-red-400 transition-colors">
         <span class="material-symbols-outlined">delete</span>
       </button>
     </div>
   </header>
 
   <!-- Chat Canvas -->
-  <main id="groupMessages" class="flex-1 overflow-y-auto px-md py-lg flex flex-col gap-sm bg-background" style="margin-bottom: 30px;">
+  <main id="groupMessages" class="flex-1 overflow-y-auto px-md py-lg flex flex-col gap-sm bg-background"
+    style="margin-bottom: 30px;">
     <div class="flex items-center justify-center py-sm history-loader">
       <div class="px-sm py-sm bg-surface-container-high rounded-full border border-outline-variant">
         <span class="text-xs text-on-surface-variant">Connecting...</span>
       </div>
     </div>
   </main>
-  
+
   <!-- Scroll to Bottom -->
-  <button id="scrollToBottomBtn" class="fixed bottom-24 right-6 w-10 h-10 bg-primary-container text-on-primary-container rounded-full shadow-lg hidden flex items-center justify-center transition-all hover:scale-110 active:scale-90">
+  <button id="scrollToBottomBtn"
+    class="fixed bottom-24 right-6 w-10 h-10 bg-primary-container text-on-primary-container rounded-full shadow-lg hidden flex items-center justify-center transition-all hover:scale-110 active:scale-90">
     <span class="material-symbols-outlined">expand_more</span>
   </button>
 
   <!-- Context Menu -->
-  <div id="messageContextMenu" class="fixed hidden z-[100] bg-surface-container-highest border border-outline-variant rounded-xl shadow-xl p-2 min-w-[160px]">
+  <div id="messageContextMenu"
+    class="fixed hidden z-[100] bg-surface-container-highest border border-outline-variant rounded-xl shadow-xl p-2 min-w-[160px]">
     <div class="flex items-center justify-between gap-1 px-1 mb-2 border-bottom border-outline-variant/30 pb-2">
       <button class="emoji-btn hover:scale-120 transition-transform p-1" data-emoji="👍">👍</button>
       <button class="emoji-btn hover:scale-120 transition-transform p-1" data-emoji="❤️">❤️</button>
@@ -118,58 +154,73 @@
       <button class="emoji-btn hover:scale-120 transition-transform p-1" data-emoji="😢">😢</button>
       <button class="emoji-btn hover:scale-120 transition-transform p-1" data-emoji="🔥">🔥</button>
     </div>
-    <button id="ctxReplyBtn" class="w-full text-left px-3 py-2 text-sm hover:bg-surface-container rounded-lg flex items-center gap-2">
+    <button id="ctxReplyBtn"
+      class="w-full text-left px-3 py-2 text-sm hover:bg-surface-container rounded-lg flex items-center gap-2">
       <span class="material-symbols-outlined text-sm">reply</span> Reply
     </button>
-    <button id="ctxCopyBtn" class="w-full text-left px-3 py-2 text-sm hover:bg-surface-container rounded-lg flex items-center gap-2">
+    <button id="ctxCopyBtn"
+      class="w-full text-left px-3 py-2 text-sm hover:bg-surface-container rounded-lg flex items-center gap-2">
       <span class="material-symbols-outlined text-sm">content_copy</span> Copy
     </button>
-    <button id="ctxEditBtn" class="w-full text-left px-3 py-2 text-sm hover:bg-surface-container rounded-lg flex items-center gap-2">
+    <button id="ctxEditBtn"
+      class="w-full text-left px-3 py-2 text-sm hover:bg-surface-container rounded-lg flex items-center gap-2">
       <span class="material-symbols-outlined text-sm">edit</span> Edit
     </button>
-    <button id="ctxDeleteBtn" class="w-full text-left px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 rounded-lg flex items-center gap-2">
+    <button id="ctxDeleteBtn"
+      class="w-full text-left px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 rounded-lg flex items-center gap-2">
       <span class="material-symbols-outlined text-sm">delete</span> Delete
     </button>
   </div>
 
   <!-- Input Bar -->
   <footer class="group-input-bar sticky bottom-0 bg-surface/90 glass-header px-md py-md pb-safe">
-    <div id="groupFileLoader" class="hidden absolute -top-10 left-4 right-4 flex items-center gap-2 px-md py-2 text-[10px] text-primary bg-surface-container-low/80 backdrop-blur rounded-t-xl border-x border-t border-outline-variant/30">
+    <div id="groupFileLoader"
+      class="hidden absolute -top-10 left-4 right-4 flex items-center gap-2 px-md py-2 text-[10px] text-primary bg-surface-container-low/80 backdrop-blur rounded-t-xl border-x border-t border-outline-variant/30">
       <div class="w-3 h-3 border-2 border-primary/30 border-t-primary rounded-full animate-spin"></div>
       <span>Sending file...</span>
     </div>
     <div class="flex items-center gap-sm max-w-5xl mx-auto">
-      <button id="groupAttachBtn" class="w-12 h-12 flex items-center justify-center rounded-full bg-surface-container-high text-on-surface hover:bg-surface-container-highest transition-colors active:scale-90">
+      <button id="groupAttachBtn"
+        class="w-12 h-12 flex items-center justify-center rounded-full bg-surface-container-high text-on-surface hover:bg-surface-container-highest transition-colors active:scale-90">
         <span class="material-symbols-outlined">add</span>
       </button>
       <input type="file" id="groupFileInput" class="hidden" accept="image/*,video/*">
       <div class="flex-1 relative flex flex-col">
         <!-- Edit Indicator -->
-        <div id="editIndicator" class="hidden absolute -top-8 left-4 right-4 flex items-center justify-between bg-surface-container px-3 py-1 rounded-t-lg border-x border-t border-outline-variant/30 text-[10px] text-primary">
-          <span class="flex items-center gap-1"><span class="material-symbols-outlined text-xs">edit</span> Editing message</span>
+        <div id="editIndicator"
+          class="hidden absolute -top-8 left-4 right-4 flex items-center justify-between bg-surface-container px-3 py-1 rounded-t-lg border-x border-t border-outline-variant/30 text-[10px] text-primary">
+          <span class="flex items-center gap-1"><span class="material-symbols-outlined text-xs">edit</span> Editing
+            message</span>
           <button id="cancelEditBtn" class="hover:text-on-surface">Cancel</button>
         </div>
         <!-- Reply Indicator -->
-        <div id="replyIndicator" class="hidden absolute -top-12 left-4 right-4 flex items-center justify-between bg-surface-container px-3 py-2 rounded-t-lg border-x border-t border-outline-variant/30 text-[10px]">
+        <div id="replyIndicator"
+          class="hidden absolute -top-12 left-4 right-4 flex items-center justify-between bg-surface-container px-3 py-2 rounded-t-lg border-x border-t border-outline-variant/30 text-[10px]">
           <div class="flex flex-col min-w-0">
             <span class="text-primary font-bold" id="replyTargetUser">@user</span>
             <span class="text-on-surface-variant truncate" id="replyTargetText">message snippet...</span>
           </div>
-          <button id="cancelReplyBtn" class="hover:text-on-surface ml-2"><span class="material-symbols-outlined text-sm">close</span></button>
+          <button id="cancelReplyBtn" class="hover:text-on-surface ml-2"><span
+              class="material-symbols-outlined text-sm">close</span></button>
         </div>
-        <textarea id="groupMessageInput" rows="1" class="w-full bg-surface-container-low border border-outline-variant/30 rounded-2xl px-md py-3 text-on-surface placeholder:text-outline focus:ring-2 focus:ring-primary/20 focus:border-primary/50 outline-none transition-all resize-none" placeholder="Message group..."></textarea>
-        <div id="groupCharCounter" class="absolute bottom-2 right-4 text-[10px] text-outline/50 pointer-events-none">0 / 2000</div>
+        <textarea id="groupMessageInput" rows="1"
+          class="w-full bg-surface-container-low border border-outline-variant/30 rounded-2xl px-md py-3 text-on-surface placeholder:text-outline focus:ring-2 focus:ring-primary/20 focus:border-primary/50 outline-none transition-all resize-none"
+          placeholder="Message group..."></textarea>
+        <div id="groupCharCounter" class="absolute bottom-2 right-4 text-[10px] text-outline/50 pointer-events-none">0 /
+          2000</div>
       </div>
-      <button id="groupSendBtn" class="w-12 h-12 flex items-center justify-center rounded-full bg-primary-container text-on-primary-container shadow-lg hover:scale-105 transition-all active:scale-90">
+      <button id="groupSendBtn"
+        class="w-12 h-12 flex items-center justify-center rounded-full bg-primary-container text-on-primary-container shadow-lg hover:scale-105 transition-all active:scale-90">
         <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">send</span>
       </button>
     </div>
   </footer>
 
-<script src="/socket.io/socket.io.js" defer></script>
-<script src="/auth.js" defer></script>
-<script src="/group.js" defer></script>
-<script src="/nav-loader.js" defer></script>
-<script src="/mobile-nav.js" defer></script>
+  <script src="/socket.io/socket.io.js" defer></script>
+  <script src="/auth.js" defer></script>
+  <script src="/group.js" defer></script>
+  <script src="/nav-loader.js" defer></script>
+  <script src="/mobile-nav.js" defer></script>
 </body>
+
 </html>
