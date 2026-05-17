@@ -34,6 +34,16 @@ const messageSchema = new mongoose.Schema({
     type: Date,
     default: null
   },
+  replyTo: {
+    type: String,
+    default: null
+  },
+  reactions: [
+    {
+      emoji: String,
+      usernames: [String]
+    }
+  ],
   timestamp: {
     type: Date,
     default: Date.now

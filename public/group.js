@@ -59,6 +59,55 @@
   const fileLoaderEl = document.getElementById("groupFileLoader");
   const charCounterEl = document.getElementById("groupCharCounter");
 
+  // Custom Action Confirmation Modal
+  const confirmModal = document.getElementById("confirmModal");
+  const confirmModalContent = document.getElementById("confirmModalContent");
+  const confirmTitle = document.getElementById("confirmTitle");
+  const confirmDesc = document.getElementById("confirmDesc");
+  const confirmIcon = document.getElementById("confirmIcon");
+  const confirmCancelBtn = document.getElementById("confirmCancelBtn");
+  const confirmProceedBtn = document.getElementById("confirmProceedBtn");
+  let activeConfirmAction = null;
+
+  function showConfirmDialog({ title, description, icon, confirmText, proceedColorClass, onProceed }) {
+    if (!confirmModal || !confirmModalContent) return;
+    confirmTitle.textContent = title;
+    confirmDesc.textContent = description;
+    confirmIcon.innerHTML = `<span class="material-symbols-outlined text-3xl">${icon || 'warning'}</span>`;
+    confirmProceedBtn.textContent = confirmText || "Confirm";
+    confirmProceedBtn.className = `flex-1 py-3 px-md rounded-full transition-all duration-200 font-medium shadow-lg active:scale-95 text-white ${proceedColorClass || 'bg-red-500 hover:bg-red-600 shadow-red-500/20'}`;
+    
+    confirmModal.classList.remove("hidden");
+    confirmModal.classList.add("flex");
+    
+    // Trigger transition reflow
+    confirmModalContent.getBoundingClientRect();
+    confirmModalContent.classList.remove("scale-95", "opacity-0");
+    confirmModalContent.classList.add("scale-100", "opacity-100");
+
+    activeConfirmAction = onProceed;
+  }
+
+  function hideConfirmDialog() {
+    if (!confirmModal || !confirmModalContent) return;
+    confirmModalContent.classList.remove("scale-100", "opacity-100");
+    confirmModalContent.classList.add("scale-95", "opacity-0");
+    
+    setTimeout(() => {
+      confirmModal.classList.remove("flex");
+      confirmModal.classList.add("hidden");
+      activeConfirmAction = null;
+    }, 200);
+  }
+
+  if (confirmCancelBtn) confirmCancelBtn.addEventListener("click", hideConfirmDialog);
+  if (confirmProceedBtn) {
+    confirmProceedBtn.addEventListener("click", () => {
+      if (activeConfirmAction) activeConfirmAction();
+      hideConfirmDialog();
+    });
+  }
+
   function clearUnreadCount() {
     const key = `chat:unread-groups:${me.username}`;
     try {
@@ -158,16 +207,17 @@
 
   function renderGroupMetadata() {
     const name = groupData.name || groupData.slug;
-    headerNameEl.textContent = name;
-    headerSlugEl.textContent = `#${groupData.slug} · Owner: @${groupData.owner}`;
-    memberCountEl.textContent = groupData.members?.length || 0;
+    if (headerNameEl) headerNameEl.textContent = name;
+    if (headerSlugEl) headerSlugEl.textContent = `#${groupData.slug} · Owner: @${groupData.owner}`;
+    if (memberCountEl) memberCountEl.textContent = groupData.members?.length || 0;
     if (groupInitialEl) groupInitialEl.textContent = name.charAt(0).toUpperCase();
     
+    const settingsBtn = document.getElementById("groupSettingsBtn");
     if (groupData.owner === me.username) {
-      document.getElementById("groupSettingsBtn").style.display = "block";
-      deleteGroupBtn.style.display = "block";
+      if (settingsBtn) settingsBtn.style.display = "block";
+      if (deleteGroupBtn) deleteGroupBtn.style.display = "block";
     } else {
-      leaveGroupBtn.style.display = "block";
+      if (leaveGroupBtn) leaveGroupBtn.style.display = "block";
     }
   }
 
@@ -489,8 +539,8 @@
     });
   }
 
-  socket.on("groupHistory", ({ slug, messages = [], hasMore, before }) => {
-    console.log("Received groupHistory for slug:", slug, "messages count:", messages.length, "before:", before);
+  socket.on("groupHistory", ({ slug, messages = [], hasMore, before, after }) => {
+    console.log("Received groupHistory for slug:", slug, "messages count:", messages.length, "before:", before, "after:", after);
     if (slug !== groupSlug) return;
 
     // Clear the timeout as history has been received
@@ -499,7 +549,8 @@
       initialLoadTimeout = null;
     }
 
-    const isInitial = !before;
+    const isInitial = !before && !after;
+    const isDelta = !!after;
     let mergedForRender = messages;
 
     updateGroupCache(groupSlug, (entry) => {
@@ -508,32 +559,42 @@
       return {
         ...entry,
         messages: merged,
-        hasMore: !!hasMore,
-        oldestTimestamp: merged[0]?.timestamp || ""
+        hasMore: isDelta ? entry.hasMore : !!hasMore,
+        oldestTimestamp: isDelta ? (entry.oldestTimestamp || merged[0]?.timestamp || "") : (merged[0]?.timestamp || "")
       };
     });
 
     if (isInitial) {
       messagesEl.innerHTML = "";
-    } else {
+    } else if (!isDelta) {
       setHistoryLoader(false);
     }
 
-    hasMoreHistory = !!hasMore;
+    if (!isDelta) {
+      hasMoreHistory = !!hasMore;
+    }
 
     if (messages.length > 0) {
       console.log("Rendering", messages.length, "messages.");
-      oldestTimestamp = messages[0].timestamp;
-      const fragment = document.createDocumentFragment();
-      mergedForRender.forEach(m => fragment.appendChild(buildMessageRow(m)));
       
-      const prevHeight = messagesEl.scrollHeight;
-      isInitial ? messagesEl.appendChild(fragment) : messagesEl.prepend(fragment);
-      
-      if (isInitial) {
+      if (isDelta) {
+        const fragment = document.createDocumentFragment();
+        messages.forEach(m => fragment.appendChild(buildMessageRow(m)));
+        messagesEl.appendChild(fragment);
         pinToLatestMessage();
       } else {
-        messagesEl.scrollTop = messagesEl.scrollHeight - prevHeight;
+        oldestTimestamp = messages[0].timestamp;
+        const fragment = document.createDocumentFragment();
+        mergedForRender.forEach(m => fragment.appendChild(buildMessageRow(m)));
+        
+        const prevHeight = messagesEl.scrollHeight;
+        isInitial ? messagesEl.appendChild(fragment) : messagesEl.prepend(fragment);
+        
+        if (isInitial) {
+          pinToLatestMessage();
+        } else {
+          messagesEl.scrollTop = messagesEl.scrollHeight - prevHeight;
+        }
       }
     } else if (isInitial) {
       console.log("No messages in this group yet.");
@@ -624,9 +685,12 @@
     if (!cached || !cached.messages.length) {
       isLoadingHistory = true;
       setHistoryLoader(true, "Connecting...");
+      socket.emit("loadGroupMessages", { slug: groupSlug });
+    } else {
+      // Only request delta (new messages since the last cached message)
+      const latestMsg = cached.messages[cached.messages.length - 1];
+      socket.emit("loadGroupMessages", { slug: groupSlug, after: latestMsg.timestamp });
     }
-
-    socket.emit("loadGroupMessages", { slug: groupSlug });
 
     if (initialLoadTimeout) clearTimeout(initialLoadTimeout);
     initialLoadTimeout = setTimeout(() => {
@@ -691,29 +755,42 @@
     return div.innerHTML;
   }
 
-  deleteGroupBtn.addEventListener("click", async () => {
-    if (!confirm(`Are you sure you want to permanently delete "${groupData?.name || groupSlug}"? This will remove all members and messages.`)) {
-      return;
-    }
-
-    const res = await authFetch(`/api/groups/${groupSlug}`, { method: "DELETE" });
-    if (res.ok) {
-      window.location.href = "/groups";
-    } else {
-      const data = await res.json();
-      alert(data.error || "Failed to delete group.");
-    }
+  deleteGroupBtn.addEventListener("click", () => {
+    showConfirmDialog({
+      title: "Delete Group",
+      description: `Are you sure you want to permanently delete "${groupData?.name || groupSlug}"? This action is irreversible and will remove all members and messages.`,
+      icon: "delete_forever",
+      confirmText: "Delete",
+      proceedColorClass: "bg-red-500 hover:bg-red-600 shadow-red-500/20",
+      onProceed: async () => {
+        const res = await authFetch(`/api/groups/${groupSlug}`, { method: "DELETE" });
+        if (res.ok) {
+          window.location.href = "/groups";
+        } else {
+          const data = await res.json();
+          alert(data.error || "Failed to delete group.");
+        }
+      }
+    });
   });
 
-  leaveGroupBtn.addEventListener("click", async () => {
-    if (!confirm("Are you sure you want to leave this group?")) return;
-    const res = await authFetch(`/api/groups/${groupSlug}/leave`, { method: "POST" });
-    if (res.ok) {
-      window.location.href = "/groups";
-    } else {
-      const data = await res.json();
-      alert(data.error || "Failed to leave group.");
-    }
+  leaveGroupBtn.addEventListener("click", () => {
+    showConfirmDialog({
+      title: "Leave Group",
+      description: "Are you sure you want to leave this group? You will lose access to all messages and media.",
+      icon: "logout",
+      confirmText: "Leave",
+      proceedColorClass: "bg-amber-500 hover:bg-amber-600 shadow-amber-500/20",
+      onProceed: async () => {
+        const res = await authFetch(`/api/groups/${groupSlug}/leave`, { method: "POST" });
+        if (res.ok) {
+          window.location.href = "/groups";
+        } else {
+          const data = await res.json();
+          alert(data.error || "Failed to leave group.");
+        }
+      }
+    });
   });
 
   // Initialize

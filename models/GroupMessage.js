@@ -12,9 +12,36 @@ const groupMessageSchema = new mongoose.Schema({
   },
   message: {
     type: String,
-    required: true,
+    default: "",
     trim: true,
     maxlength: 2000
+  },
+  type: {
+    type: String,
+    enum: ["text", "image", "video"],
+    default: "text"
+  },
+  mediaUrl: {
+    type: String,
+    default: ""
+  },
+  replyTo: {
+    type: String,
+    default: null
+  },
+  reactions: [
+    {
+      emoji: String,
+      usernames: [String]
+    }
+  ],
+  edited: {
+    type: Boolean,
+    default: false
+  },
+  editedAt: {
+    type: Date,
+    default: null
   },
   timestamp: {
     type: Date,
@@ -23,3 +50,4 @@ const groupMessageSchema = new mongoose.Schema({
 });
 
 module.exports = mongoose.model("GroupMessage", groupMessageSchema);
+

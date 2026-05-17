@@ -1,3 +1,11 @@
+// Silence all console logging in the browser to prevent storing logs in the browser console.
+// Re-enable in local dev console by typing: localStorage.setItem("DEBUG", "1") and reloading.
+if (localStorage.getItem("DEBUG") !== "1") {
+  console.log = () => {};
+  console.warn = () => {};
+  console.error = () => {};
+}
+
 if (!window.CookieUtil) {
   window.CookieUtil = {
     set: function(name, value, days) {

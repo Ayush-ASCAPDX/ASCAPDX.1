@@ -48,6 +48,8 @@
     }
 
     .topbar {
+      position: relative;
+      z-index: 50;
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -105,7 +107,7 @@
       border-radius: 12px;
       padding: 6px;
       display: none;
-      z-index: 30;
+      z-index: 9999;
     }
 
     .menu-drop.open {
@@ -543,8 +545,6 @@
         <div class="brand">Orbit</div>
       </div>
       <div style="display:flex;align-items:center;gap:10px;">
-        <button id="themeToggleBtn" type="button" class="theme-toggle-btn theme-toggle-btn-inline"
-          aria-label="Toggle theme">Light</button>
         <div class="menu-wrap">
           <button class="menu-btn" id="profileMenuBtn" aria-label="Menu">⋮</button>
           <div class="menu-drop" id="profileMenuDrop"> <button class="menu-item" id="openEditorBtn" type="button">Edit

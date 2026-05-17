@@ -1191,6 +1191,8 @@ button {
 }
 
 .chat-header {
+  position: relative;
+  z-index: 50;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1412,7 +1414,7 @@ button {
   border-radius: 12px;
   background: #fff;
   box-shadow: 0 14px 30px rgba(37, 99, 235, 0.14);
-  z-index: 40;
+  z-index: 9999;
   padding: 6px;
 }
 

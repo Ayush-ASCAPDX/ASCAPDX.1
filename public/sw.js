@@ -1,4 +1,4 @@
-const CACHE_VERSION = "v7";
+const CACHE_VERSION = "v12";
 const STATIC_CACHE = `sc-static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `sc-runtime-${CACHE_VERSION}`;
 const API_CACHE = `sc-api-${CACHE_VERSION}`;
@@ -21,7 +21,8 @@ const APP_SHELL = [
   "/nav-loader.js",
   "/pwa.js",
   "/manifest.webmanifest",
-  "/icon.svg",
+  "/ico.png",
+  "/Maskable.png",
   "/favicon.ico"
 ];
 
@@ -78,7 +79,7 @@ async function networkFirst(request, cacheName, fallbackRequest = null, timeoutM
   try {
     const response = await fetch(request, { signal: controller.signal });
     clearTimeout(timeoutId);
-    putInCache(cacheName, request, response).catch(() => {});
+    putInCache(cacheName, request, response).catch(() => { });
     return response;
   } catch (_) {
     clearTimeout(timeoutId);
@@ -102,14 +103,14 @@ async function staleWhileRevalidate(request, cacheName, maxEntries = 200) {
 
   const networkPromise = fetch(request)
     .then((response) => {
-      putInCache(cacheName, request, response).catch(() => {});
-      trimCache(cacheName, maxEntries).catch(() => {});
+      putInCache(cacheName, request, response).catch(() => { });
+      trimCache(cacheName, maxEntries).catch(() => { });
       return response;
     })
     .catch(() => null);
 
   if (cached) {
-    networkPromise.catch(() => {});
+    networkPromise.catch(() => { });
     return cached;
   }
 
@@ -147,7 +148,7 @@ self.addEventListener("fetch", (event) => {
   if (url.origin === self.location.origin && url.pathname.startsWith("/api/")) {
     event.respondWith(
       networkFirst(request, API_CACHE, null, 4500).then(async (response) => {
-        trimCache(API_CACHE, 120).catch(() => {});
+        trimCache(API_CACHE, 120).catch(() => { });
         return response;
       }).catch(async () => {
         const cache = await caches.open(API_CACHE);
@@ -187,8 +188,8 @@ self.addEventListener("push", (event) => {
   const title = payload.title || "ASCAPDX Chat";
   const options = {
     body: payload.body || "You have a new notification.",
-    icon: "/icon.svg",
-    badge: "/icon-maskable.svg",
+    icon: "/ico.png",
+    badge: "/Maskable.png",
     tag: payload.tag || "chat-notification",
     data: {
       url: payload.url || "/chat",

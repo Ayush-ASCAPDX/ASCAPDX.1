@@ -102,7 +102,7 @@
     popup.innerHTML = `
       <div style="margin-bottom: 24px; display: flex; justify-content: center;">
         <div style="background: linear-gradient(135deg, var(--surface-2), var(--surface)); padding: 16px; border-radius: 24px; box-shadow: 0 12px 30px rgba(0,0,0,0.3); border: 1px solid var(--line);">
-          <img src="/icon.svg" alt="App Icon" style="width: 72px; height: 72px; border-radius: 16px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.2));">
+          <img src="/ico.png" alt="App Icon" style="width: 72px; height: 72px; border-radius: 16px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.2));">
         </div>
       </div>
       <h2 class="modal-title" style="margin-bottom: 12px; font-size: 1.6rem; font-weight: 800; background: linear-gradient(to right, #fff, #a1a1aa); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Get the App</h2>

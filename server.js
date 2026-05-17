@@ -1,5 +1,13 @@
 const path = require("path");
-require("dotenv").config();
+require("dotenv").config({ quiet: true });
+
+// Silence all terminal and console logging to prevent log storage in stdout/stderr histories.
+// You can re-enable logging in development by adding DEBUG=1 to your .env file.
+if (process.env.DEBUG !== "1") {
+  console.log = () => {};
+  console.warn = () => {};
+  console.error = () => {};
+}
 const express = require("express");
 const http = require("http");
 const net = require("net");
@@ -163,7 +171,17 @@ app.post(
 
 app.use(express.json({ limit: "25mb" }));
 app.use(express.urlencoded({ extended: true, limit: "25mb" }));
-app.use(express.static("public", { index: false }));
+app.use(express.static("public", {
+  index: false,
+  setHeaders: (res, filePath) => {
+    const lowerPath = filePath.toLowerCase();
+    if (lowerPath.endsWith("sw.js") || lowerPath.endsWith(".webmanifest")) {
+      res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+      res.setHeader("Pragma", "no-cache");
+      res.setHeader("Expires", "0");
+    }
+  }
+}));
 
 // ── API Browser Guard ──────────────────────────────────────────────────────
 // Blocks any /api/ request that wasn't made by the app's own JavaScript.
@@ -1921,7 +1939,7 @@ io.on("connection", async (socket) => {
     socket.join(`group:${normalized}`);
   });
 
-  socket.on("loadGroupMessages", async ({ slug, before }) => {
+  socket.on("loadGroupMessages", async ({ slug, before, after }) => {
     const normalized = normalizeSlug(slug);
     if (!normalized) return;
     const group = await Group.findOne({ slug: normalized }).select("slug members");
@@ -1932,21 +1950,31 @@ io.on("connection", async (socket) => {
     try {
       const beforeDate = before ? new Date(before) : null;
       const hasBefore = beforeDate && !Number.isNaN(beforeDate.getTime());
-      const baseFilter = { groupSlug: normalized };
-      const queryFilter = hasBefore
-        ? { ...baseFilter, timestamp: { $lt: beforeDate } }
-        : baseFilter;
 
+      const afterDate = after ? new Date(after) : null;
+      const hasAfter = afterDate && !Number.isNaN(afterDate.getTime());
+
+      const baseFilter = { groupSlug: normalized };
+      let queryFilter = baseFilter;
+
+      if (hasBefore) {
+        queryFilter = { ...baseFilter, timestamp: { $lt: beforeDate } };
+      } else if (hasAfter) {
+        queryFilter = { ...baseFilter, timestamp: { $gt: afterDate } };
+      }
+
+      const sortOrder = hasAfter ? { timestamp: 1 } : { timestamp: -1 };
       const history = await GroupMessage.find(queryFilter)
-        .sort({ timestamp: -1 })
-        .limit(GROUP_HISTORY_LIMIT)
+        .sort(sortOrder)
+        .limit(hasAfter ? 200 : GROUP_HISTORY_LIMIT)
         .lean();
 
       socket.emit("groupHistory", {
         slug: normalized,
         before: hasBefore ? beforeDate.toISOString() : "",
-        messages: history.reverse(),
-        hasMore: history.length === GROUP_HISTORY_LIMIT
+        after: hasAfter ? afterDate.toISOString() : "",
+        messages: hasAfter ? history : history.reverse(),
+        hasMore: hasAfter ? false : history.length === GROUP_HISTORY_LIMIT
       });
       console.log(`Emitted groupHistory for ${normalized} with ${history.length} messages.`);
     } catch (error) {
@@ -1956,112 +1984,129 @@ io.on("connection", async (socket) => {
   });
 
   socket.on("groupMessage", async ({ slug, message, type, mediaUrl, replyTo }) => {
-    const normalized = normalizeSlug(slug);
-    const text = (message || "").trim();
-    const msgType = type || "text";
-    if (!normalized) return;
-    if (msgType === "text" && !text) return;
-    if ((msgType === "image" || msgType === "video") && !mediaUrl) return;
+    try {
+      const normalized = normalizeSlug(slug);
+      const text = (message || "").trim();
+      const msgType = type || "text";
+      if (!normalized) return;
+      if (msgType === "text" && !text) return;
+      if ((msgType === "image" || msgType === "video") && !mediaUrl) return;
 
-    const group = await Group.findOne({ slug: normalized }).select("slug members");
-    if (!group) return;
-    if (!group.members.includes(username)) return;
+      const group = await Group.findOne({ slug: normalized }).select("slug members");
+      if (!group) return;
+      if (!group.members.includes(username)) return;
 
-    const saved = await GroupMessage.create({
-      groupSlug: normalized,
-      from: username,
-      message: text || (msgType === "text" ? "" : " "),
-      type: msgType,
-      mediaUrl: mediaUrl || "",
-      replyTo: replyTo || null,
-      reactions: []
-    });
+      const saved = await GroupMessage.create({
+        groupSlug: normalized,
+        from: username,
+        message: text,
+        type: msgType,
+        mediaUrl: mediaUrl || "",
+        replyTo: replyTo || null,
+        reactions: []
+      });
 
-    const payload = { slug: normalized, message: saved };
+      const payload = { slug: normalized, message: saved };
 
-    // Broadcast to everyone currently viewing the group chat room.
-    io.to(`group:${normalized}`).emit("groupMessage", payload);
+      // Broadcast to everyone currently viewing the group chat room.
+      io.to(`group:${normalized}`).emit("groupMessage", payload);
 
-    await Promise.all(
-      group.members
-        .filter((memberUsername) => memberUsername !== username && !getSocketIdsForUser(memberUsername).length)
-        .map((memberUsername) =>
-          sendPushToUser(memberUsername, {
-            type: "group-message",
-            title: `${group.slug}`,
-            body: `@${username}: ${text}`,
-            url: `/g/${encodeURIComponent(normalized)}`,
-            tag: `group:${normalized}`,
-            data: {
-              slug: normalized,
-              from: username
-            }
-          })
-        )
-    );
+      await Promise.all(
+        group.members
+          .filter((memberUsername) => memberUsername !== username && !getSocketIdsForUser(memberUsername).length)
+          .map((memberUsername) =>
+            sendPushToUser(memberUsername, {
+              type: "group-message",
+              title: `${group.slug}`,
+              body: `@${username}: ${text || (msgType === "text" ? "" : "sent a " + msgType)}`,
+              url: `/g/${encodeURIComponent(normalized)}`,
+              tag: `group:${normalized}`,
+              data: {
+                slug: normalized,
+                from: username
+              }
+            })
+          )
+      );
+    } catch (error) {
+      console.error("Error sending group message:", error);
+      socket.emit("groupError", { slug: normalizeSlug(slug), error: "Failed to send message." });
+    }
   });
 
   socket.on("editGroupMessage", async ({ messageId, newText }) => {
-    const text = (newText || "").trim();
-    if (!messageId || !text) return;
+    try {
+      const text = (newText || "").trim();
+      if (!messageId || !text) return;
 
-    const msg = await GroupMessage.findById(messageId);
-    if (!msg || msg.from !== username) return;
+      const msg = await GroupMessage.findById(messageId);
+      if (!msg || msg.from !== username) return;
 
-    msg.message = text;
-    msg.edited = true;
-    msg.editedAt = new Date();
-    await msg.save();
+      msg.message = text;
+      msg.edited = true;
+      msg.editedAt = new Date();
+      await msg.save();
 
-    io.to(`group:${msg.groupSlug}`).emit("groupMessageEdited", msg);
+      io.to(`group:${msg.groupSlug}`).emit("groupMessageEdited", msg);
+    } catch (error) {
+      console.error("Error editing group message:", error);
+    }
   });
 
   socket.on("deleteGroupMessage", async ({ messageId }) => {
-    if (!messageId) return;
+    try {
+      if (!messageId) return;
 
-    const msg = await GroupMessage.findById(messageId);
-    if (!msg || msg.from !== username) return;
+      const msg = await GroupMessage.findById(messageId);
+      if (!msg || msg.from !== username) return;
 
-    const slug = msg.groupSlug;
-    await GroupMessage.deleteOne({ _id: messageId });
-    io.to(`group:${slug}`).emit("groupMessageDeleted", { messageId });
+      const slug = msg.groupSlug;
+      await GroupMessage.deleteOne({ _id: messageId });
+      io.to(`group:${slug}`).emit("groupMessageDeleted", { messageId });
+    } catch (error) {
+      console.error("Error deleting group message:", error);
+    }
   });
 
   socket.on("reactToGroupMessage", async ({ messageId, emoji }) => {
-    if (!messageId || !emoji) return;
+    try {
+      if (!messageId || !emoji) return;
 
-    const msg = await GroupMessage.findById(messageId);
-    if (!msg) return;
+      const msg = await GroupMessage.findById(messageId);
+      if (!msg) return;
 
-    // Ensure reactions array exists
-    if (!msg.reactions) msg.reactions = [];
+      // Ensure reactions array exists
+      if (!msg.reactions) msg.reactions = [];
 
-    // Find existing reaction for this emoji
-    let reaction = msg.reactions.find(r => r.emoji === emoji);
+      // Find existing reaction for this emoji
+      let reaction = msg.reactions.find(r => r.emoji === emoji);
 
-    if (reaction) {
-      const userIndex = reaction.usernames.indexOf(username);
-      if (userIndex > -1) {
-        // Toggle off: remove user
-        reaction.usernames.splice(userIndex, 1);
-        // Remove emoji group if no users left
-        if (reaction.usernames.length === 0) {
-          msg.reactions = msg.reactions.filter(r => r.emoji !== emoji);
+      if (reaction) {
+        const userIndex = reaction.usernames.indexOf(username);
+        if (userIndex > -1) {
+          // Toggle off: remove user
+          reaction.usernames.splice(userIndex, 1);
+          // Remove emoji group if no users left
+          if (reaction.usernames.length === 0) {
+            msg.reactions = msg.reactions.filter(r => r.emoji !== emoji);
+          }
+        } else {
+          // Toggle on: add user
+          reaction.usernames.push(username);
         }
       } else {
-        // Toggle on: add user
-        reaction.usernames.push(username);
+        // New emoji reaction
+        msg.reactions.push({ emoji, usernames: [username] });
       }
-    } else {
-      // New emoji reaction
-      msg.reactions.push({ emoji, usernames: [username] });
-    }
 
-    await msg.save();
-    io.to(`group:${msg.groupSlug}`).emit("groupMessageReacted", {
-      messageId: msg._id,
-      reactions: msg.reactions
-    });
+      await msg.save();
+      io.to(`group:${msg.groupSlug}`).emit("groupMessageReacted", {
+        messageId: msg._id,
+        reactions: msg.reactions
+      });
+    } catch (error) {
+      console.error("Error reacting to group message:", error);
+    }
   });
 
   socket.on("video-answer", ({ to, answer, callId }) => {
