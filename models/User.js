@@ -75,7 +75,9 @@ const userSchema = new mongoose.Schema({
   savedPosts: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Post'
-  }]
+  }],
+  following: [{ type: String }],
+  followers: [{ type: String }]
 });
 
 module.exports = mongoose.model("User", userSchema);

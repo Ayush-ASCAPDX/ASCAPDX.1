@@ -1,24 +1,32 @@
 (function initMobileNav() {
   const NAV_STYLE_ID = "mobile-global-nav-style";
-  const ICON_FONT_ID = "mobile-global-nav-icons";
 
   const items = [
-    { href: "/chat", label: "Home", icon: "home", match: (path) => path === "/chat" || path === "/" || path === "/index.html" },
-    { href: "/feed", label: "Feed", icon: "dynamic_feed", match: (path) => path === "/feed" || path === "/create-post" },
-    { href: "/groups", label: "Groups", icon: "group", match: (path) => path === "/groups" || path.startsWith("/groups/") || path.startsWith("/g/") },
-    { href: "/profile", label: "Profile", icon: "account_circle", match: (path) => path === "/profile" || path === "/settings" || path === "/user-profile" }
+    { 
+      href: "/chat", 
+      label: "Home", 
+      iconSvg: '<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline>', 
+      match: (path) => path === "/chat" || path === "/" || path === "/index.html" 
+    },
+    { 
+      href: "/feed", 
+      label: "Feed", 
+      iconSvg: '<rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect>', 
+      match: (path) => path === "/feed" || path === "/create-post" 
+    },
+    { 
+      href: "/groups", 
+      label: "Groups", 
+      iconSvg: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path>', 
+      match: (path) => path === "/groups" || path.startsWith("/groups/") || path.startsWith("/g/") 
+    },
+    { 
+      href: "/profile", 
+      label: "Profile", 
+      iconSvg: '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle>', 
+      match: (path) => path === "/profile" || path === "/settings" || path === "/user-profile" 
+    }
   ];
-
-  function ensureIconFont() {
-    if (document.getElementById(ICON_FONT_ID)) return;
-    if (document.querySelector('link[href*="Material+Symbols+Outlined"]')) return;
-
-    const link = document.createElement("link");
-    link.id = ICON_FONT_ID;
-    link.rel = "stylesheet";
-    link.href = "https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap";
-    document.head.appendChild(link);
-  }
 
   function ensureStyles() {
     if (document.getElementById(NAV_STYLE_ID)) return;
@@ -26,10 +34,6 @@
     const style = document.createElement("style");
     style.id = NAV_STYLE_ID;
     style.textContent = `
-      .material-symbols-outlined {
-        font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
-      }
-
       body .mobile-global-nav {
         position: fixed;
         left: 0;
@@ -76,14 +80,11 @@
         transform: scale(0.96);
       }
 
-      body .mobile-global-nav-icon {
-        font-size: 24px;
-        line-height: 1;
-      }
-
-      body .mobile-global-nav-label {
-        font-size: inherit;
-        line-height: 1;
+      body .mobile-global-nav-icon-svg {
+        width: 24px;
+        height: 24px;
+        flex-shrink: 0;
+        transition: stroke-width 160ms ease;
       }
 
       body .mobile-global-nav-link.is-active {
@@ -95,8 +96,8 @@
         box-shadow: 0 10px 22px rgba(67, 184, 234, 0.22);
       }
 
-      body .mobile-global-nav-link.is-active .mobile-global-nav-icon {
-        font-variation-settings: "FILL" 1, "wght" 400, "GRAD" 0, "opsz" 24;
+      body .mobile-global-nav-link.is-active .mobile-global-nav-icon-svg {
+        stroke-width: 2.5px;
       }
 
       @media (min-width: 769px) {
@@ -117,8 +118,9 @@
           font-size: 9px;
         }
 
-        body .mobile-global-nav-icon {
-          font-size: 22px;
+        body .mobile-global-nav-icon-svg {
+          width: 22px;
+          height: 22px;
         }
 
         body .mobile-global-nav-link.is-active {
@@ -136,8 +138,9 @@
           font-size: 8px;
         }
 
-        body .mobile-global-nav-icon {
-          font-size: 20px;
+        body .mobile-global-nav-icon-svg {
+          width: 20px;
+          height: 20px;
         }
 
         body .mobile-global-nav-link.is-active {
@@ -154,7 +157,6 @@
   }
 
   function renderMobileNav() {
-    ensureIconFont();
     ensureStyles();
 
     const existingNav = document.querySelector(".mobile-global-nav");
@@ -169,7 +171,7 @@
       const isActive = item.match(path);
       return `
         <a class="mobile-global-nav-link${isActive ? " is-active" : ""}" href="${item.href}" aria-label="${item.label}"${isActive ? ' aria-current="page"' : ""}>
-          <span class="material-symbols-outlined mobile-global-nav-icon">${item.icon}</span>
+          <svg class="mobile-global-nav-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${item.iconSvg}</svg>
         </a>
       `;
     }).join("");

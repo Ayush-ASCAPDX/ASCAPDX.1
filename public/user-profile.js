@@ -103,18 +103,43 @@
     actionRow.appendChild(callBtn);
 
     // Follow Button
-    const following = Array.isArray(me.following) ? me.following : [];
-    const isFollowing = following.includes(user.username);
+    if (!me.following) me.following = [];
+    let isFollowing = me.following.includes(user.username);
     const followBtn = document.createElement("button");
-    followBtn.textContent = isFollowing ? "Unfollow" : "Follow";
+    followBtn.textContent = isFollowing ? "Disconnect" : "Connect";
     followBtn.onclick = async () => {
-      const action = followBtn.textContent.toLowerCase() === "follow" ? "follow" : "unfollow";
+      const action = followBtn.textContent.toLowerCase() === "connect" ? "follow" : "unfollow";
+      
+      // Optimistic UI Update
+      isFollowing = action === "follow";
+      followBtn.textContent = isFollowing ? "Disconnect" : "Connect";
+      
+      // Update local context immediately
+      if (isFollowing) {
+        if (!me.following.includes(user.username)) me.following.push(user.username);
+      } else {
+        me.following = me.following.filter(u => u !== user.username);
+      }
+      localStorage.setItem("user", JSON.stringify(me));
+
+      // Background API sync
       const followRes = await authFetch(`/api/users/${encodeURIComponent(user.username)}/${action}`, { 
         method: action === "follow" ? "POST" : "DELETE" 
       });
+      
       if (followRes.ok) {
-        followBtn.textContent = action === "follow" ? "Unfollow" : "Follow";
-        setStatus(`${action === "follow" ? "Followed" : "Unfollowed"} @${user.username}`, false);
+        setStatus(`${action === "follow" ? "Connected with" : "Disconnected from"} @${user.username}`, false);
+      } else {
+        // Revert on fail
+        isFollowing = !isFollowing;
+        followBtn.textContent = isFollowing ? "Disconnect" : "Connect";
+        if (isFollowing) {
+          if (!me.following.includes(user.username)) me.following.push(user.username);
+        } else {
+          me.following = me.following.filter(u => u !== user.username);
+        }
+        localStorage.setItem("user", JSON.stringify(me));
+        setStatus("Failed to sync follow state.", true);
       }
     };
     actionRow.appendChild(followBtn);
@@ -134,8 +159,65 @@
     const reportBtn = document.createElement("button");
     reportBtn.textContent = "Report";
     reportBtn.onclick = () => {
-      const reason = prompt("Why are you reporting this user?");
-      if (reason) setStatus("Report submitted for review.", false);
+      const modalOverlay = document.createElement("div");
+      modalOverlay.style.position = "fixed";
+      modalOverlay.style.inset = "0";
+      modalOverlay.style.zIndex = "50";
+      modalOverlay.style.display = "flex";
+      modalOverlay.style.alignItems = "center";
+      modalOverlay.style.justifyContent = "center";
+      modalOverlay.style.backgroundColor = "rgba(0,0,0,0.6)";
+      modalOverlay.style.padding = "16px";
+      modalOverlay.innerHTML = `
+        <div style="width: 100%; max-width: 400px; border-radius: 16px; border: 1px solid var(--line); background: var(--surface); padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+          <h2 style="margin: 0 0 16px; font-size: 1.25rem; font-weight: 700; color: var(--text);">Report @${user.username}</h2>
+          <div style="margin-bottom: 16px;">
+            <label style="display: block; margin-bottom: 8px; font-size: 0.875rem; font-weight: 500; color: var(--muted);">Reason</label>
+            <select id="reportReason" style="width: 100%; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); padding: 12px; color: var(--text); outline: none;">
+              <option value="Spam / Scams">Spam / Scams</option>
+              <option value="Harassment / Bullying">Harassment / Bullying</option>
+              <option value="Fake Account">Fake Account</option>
+              <option value="Inappropriate Content">Inappropriate Content</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div style="margin-bottom: 24px;">
+            <label style="display: block; margin-bottom: 8px; font-size: 0.875rem; font-weight: 500; color: var(--muted);">Details (optional)</label>
+            <textarea id="reportDetails" rows="3" style="width: 100%; resize: none; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); padding: 12px; color: var(--text); outline: none;" placeholder="Provide more context..."></textarea>
+          </div>
+          <div style="display: flex; gap: 12px;">
+            <button id="cancelReportBtn" style="flex: 1; border-radius: 999px; border: 1px solid var(--line); background: transparent; padding: 10px; font-weight: 600; color: var(--text); cursor: pointer;">Cancel</button>
+            <button id="submitReportBtn" style="flex: 1; border-radius: 999px; border: none; background: #ef4444; padding: 10px; font-weight: 600; color: white; cursor: pointer; box-shadow: 0 4px 10px rgba(239,68,68,0.4);">Submit</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modalOverlay);
+
+      document.getElementById("cancelReportBtn").onclick = () => modalOverlay.remove();
+      document.getElementById("submitReportBtn").onclick = async () => {
+        const reason = document.getElementById("reportReason").value;
+        const details = document.getElementById("reportDetails").value;
+        const btn = document.getElementById("submitReportBtn");
+        btn.textContent = "Submitting...";
+        btn.disabled = true;
+
+        try {
+          const res = await authFetch("/api/reports", {
+            method: "POST",
+            body: JSON.stringify({ reported: user.username, reason, details })
+          });
+          const data = await res.json();
+          modalOverlay.remove();
+          if (res.ok) {
+            setStatus("Report submitted successfully.", false);
+          } else {
+            setStatus(data.error || "Failed to submit report.");
+          }
+        } catch (e) {
+          modalOverlay.remove();
+          setStatus("Error submitting report.");
+        }
+      };
     };
     actionRow.appendChild(reportBtn);
 

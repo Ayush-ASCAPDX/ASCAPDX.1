@@ -15,6 +15,14 @@ const GroupMessage = require("./models/GroupMessage");
 const Story = require("./models/Story");
 
 // Post Model for Feed
+const CommentSchema = new mongoose.Schema({
+  username: { type: String, required: true },
+  author: { type: String },
+  avatarUrl: { type: String },
+  content: { type: String, required: true },
+  timestamp: { type: Date, default: Date.now }
+});
+
 const PostSchema = new mongoose.Schema({
   username: { type: String, required: true },
   author: { type: String },
@@ -23,6 +31,7 @@ const PostSchema = new mongoose.Schema({
   likes: [{ type: String }],
   dislikes: [{ type: String }], // Array of usernames who disliked the post
   mentions: [{ type: String }], 
+  comments: [CommentSchema],
   timestamp: { type: Date, default: Date.now }
 });
 const Post = mongoose.model("Post", PostSchema);
@@ -35,6 +44,18 @@ const ShareSchema = new mongoose.Schema({
   timestamp: { type: Date, default: Date.now }
 });
 const Share = mongoose.model("Share", ShareSchema);
+
+// Report Model
+const ReportSchema = new mongoose.Schema({
+  reporter:  { type: String, required: true },
+  reported:  { type: String, required: true },
+  reason:    { type: String, required: true },
+  details:   { type: String, default: "" },
+  status:    { type: String, enum: ["pending", "resolved", "dismissed"], default: "pending" },
+  adminNote: { type: String, default: "" },
+  createdAt: { type: Date, default: Date.now }
+});
+const Report = mongoose.model("Report", ReportSchema);
 
 const app = express();
 const server = http.createServer(app);
@@ -144,6 +165,55 @@ app.use(express.json({ limit: "25mb" }));
 app.use(express.urlencoded({ extended: true, limit: "25mb" }));
 app.use(express.static("public", { index: false }));
 
+// ── API Browser Guard ──────────────────────────────────────────────────────
+// Blocks any /api/ request that wasn't made by the app's own JavaScript.
+// When a user types an API URL directly in the browser, there is no
+// X-App-Request header and Sec-Fetch-Dest is "document" — both are blocked.
+app.use("/api", (req, res, next) => {
+  const appHeader = req.headers["x-app-request"];
+  const fetchDest = req.headers["sec-fetch-dest"]; // set by modern browsers
+
+  // Allow: request came from app JS (has our custom header)
+  if (appHeader === "1") return next();
+
+  // Allow: non-GET methods (POST/PUT/DELETE from forms/fetch won't be navigate)
+  if (req.method !== "GET") return next();
+
+  // Block: browser direct navigation (Sec-Fetch-Dest = document)
+  if (fetchDest === "document") {
+    return res.status(403).send(`
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <title>403 – Not Accessible</title>
+        <style>
+          body { font-family: system-ui, sans-serif; background:#0a1628; color:#d3e3ff;
+                 display:flex; align-items:center; justify-content:center; height:100vh; margin:0; }
+          .box { text-align:center; padding:40px; border:1px solid rgba(116,159,207,.3);
+                 border-radius:20px; background:rgba(19,40,63,.9); max-width:400px; }
+          h1 { color:#43b8ea; margin:0 0 12px; font-size:2rem; }
+          p  { color:#9fb4cf; margin:0 0 24px; }
+          a  { color:#43b8ea; text-decoration:none; font-weight:600; }
+        </style>
+      </head>
+      <body>
+        <div class="box">
+          <h1>🔒 403</h1>
+          <p>This endpoint is not accessible from a browser.<br>It is for internal app use only.</p>
+          <a href="/chat">← Go back to the app</a>
+        </div>
+      </body>
+      </html>
+    `);
+  }
+
+  // Allow anything else (curl, Postman, server-to-server) — auth middleware handles it
+  next();
+});
+// ──────────────────────────────────────────────────────────────────────────
+
+
 function createToken(user) {
   return jwt.sign(
     {
@@ -153,6 +223,66 @@ function createToken(user) {
     JWT_SECRET,
     { expiresIn: "7d" }
   );
+}
+
+// Global in-memory buffer for follows and unfollows
+const followBuffer = {
+  // Key: `fromUser:toUser`, Value: "follow" | "unfollow"
+  actions: new Map()
+};
+
+// Flush follow buffer to DB every 2 hours
+setInterval(async () => {
+  if (followBuffer.actions.size === 0) return;
+  console.log(`[Background] Flushing ${followBuffer.actions.size} follow actions to DB...`);
+  
+  const actions = Array.from(followBuffer.actions.entries());
+  followBuffer.actions.clear();
+
+  for (const [key, action] of actions) {
+    const [fromUser, toUser] = key.split(":");
+    try {
+      const from = await User.findOne({ username: fromUser });
+      const to = await User.findOne({ username: toUser });
+      if (!from || !to) continue;
+
+      if (action === "follow") {
+        if (!from.following.includes(toUser)) from.following.push(toUser);
+        if (!to.followers.includes(fromUser)) to.followers.push(fromUser);
+      } else {
+        from.following = from.following.filter(u => u !== toUser);
+        to.followers = to.followers.filter(u => u !== fromUser);
+      }
+
+      await from.save();
+      await to.save();
+    } catch (err) {
+      console.error(`[Background] Failed to flush follow action for ${key}:`, err);
+    }
+  }
+}, 2 * 60 * 60 * 1000); // 2 hours
+
+function mergeFollowBuffer(user) {
+  const followingSet = new Set(Array.isArray(user.following) ? user.following : []);
+  const followersSet = new Set(Array.isArray(user.followers) ? user.followers : []);
+  
+  for (const [key, action] of followBuffer.actions.entries()) {
+    const [fromUser, toUser] = key.split(":");
+    if (fromUser === user.username) {
+      if (action === "follow") followingSet.add(toUser);
+      else followingSet.delete(toUser);
+    }
+    if (toUser === user.username) {
+      if (action === "follow") followersSet.add(fromUser);
+      else followersSet.delete(fromUser);
+    }
+  }
+
+  return {
+    ...user,
+    following: Array.from(followingSet),
+    followers: Array.from(followersSet)
+  };
 }
 
 function toSafeUser(user) {
@@ -165,6 +295,8 @@ function toSafeUser(user) {
     cleanBackgrounds[k.replace(/__dot__/g, ".")] = v;
   });
 
+  const merged = mergeFollowBuffer(user);
+
   return {
     username: user.username,
     name: user.name,
@@ -173,7 +305,9 @@ function toSafeUser(user) {
     globalChatBackground: user.globalChatBackground || "default",
     chatBackgrounds: cleanBackgrounds,
     membershipTier: user.membershipTier || "free",
-    membershipValidUntil: user.membershipValidUntil || null
+    membershipValidUntil: user.membershipValidUntil || null,
+    following: merged.following,
+    followers: merged.followers
   };
 }
 
@@ -362,6 +496,17 @@ function authMiddleware(req, res, next) {
   }
 }
 
+function adminMiddleware(req, res, next) {
+  const admins = (process.env.ADMIN_USERNAMES || "")
+    .split(",")
+    .map((u) => u.trim().toLowerCase())
+    .filter(Boolean);
+  if (!admins.includes((req.user.username || "").toLowerCase())) {
+    return res.status(403).json({ error: "Admin access required" });
+  }
+  return next();
+}
+
 function socketAuth(socket, next) {
   const token = socket.handshake.auth?.token;
 
@@ -423,6 +568,10 @@ app.get("/edit-profile", (req, res) => {
 
 app.get("/user-profile", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "user-profile.html"));
+});
+
+app.get("/admin", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "admin.html"));
 });
 
 app.get("/groups", (req, res) => {
@@ -594,7 +743,7 @@ app.post("/api/login", async (req, res) => {
 
 app.get("/api/me", authMiddleware, async (req, res) => {
   const user = await User.findOne({ username: req.user.username })
-    .select("username name bio avatarUrl globalChatBackground chatBackgrounds membershipTier membershipValidUntil");
+    .select("username name bio avatarUrl globalChatBackground chatBackgrounds membershipTier membershipValidUntil following followers");
   if (!user) {
     return res.status(404).json({ error: "User not found" });
   }
@@ -603,10 +752,35 @@ app.get("/api/me", authMiddleware, async (req, res) => {
 
 app.get("/api/users", authMiddleware, async (req, res) => {
   const users = await User.find({ username: { $ne: req.user.username } })
-    .select("username name avatarUrl")
+    .select("username name avatarUrl following followers")
     .sort({ username: 1 })
     .lean();
-  return res.json(users);
+  
+  return res.json(users.map(u => ({
+    username: u.username,
+    name: u.name,
+    avatarUrl: u.avatarUrl,
+    following: mergeFollowBuffer(u).following,
+    followers: mergeFollowBuffer(u).followers
+  })));
+});
+
+app.post("/api/users/:username/follow", authMiddleware, async (req, res) => {
+  const fromUser = req.user.username;
+  const toUser = normalizeUsername(req.params.username);
+  if (!toUser || fromUser === toUser) return res.status(400).json({ error: "Invalid target user" });
+
+  followBuffer.actions.set(`${fromUser}:${toUser}`, "follow");
+  return res.json({ ok: true, followed: toUser });
+});
+
+app.delete("/api/users/:username/unfollow", authMiddleware, async (req, res) => {
+  const fromUser = req.user.username;
+  const toUser = normalizeUsername(req.params.username);
+  if (!toUser || fromUser === toUser) return res.status(400).json({ error: "Invalid target user" });
+
+  followBuffer.actions.set(`${fromUser}:${toUser}`, "unfollow");
+  return res.json({ ok: true, unfollowed: toUser });
 });
 
 app.put("/api/settings", authMiddleware, async (req, res) => {
@@ -869,7 +1043,41 @@ app.post("/api/posts/:id/save", authMiddleware, async (req, res) => {
       res.json({ saved: true });
     }
   } catch (err) {
-    res.status(500).json({ error: "Failed to toggle save post" });
+    res.status(500).json({ error: "Failed to toggle save" });
+  }
+});
+
+app.post("/api/posts/:id/comments", authMiddleware, async (req, res) => {
+  try {
+    const { content } = req.body;
+    if (!content || !content.trim()) {
+      return res.status(400).json({ error: "Comment content is required" });
+    }
+
+    const post = await Post.findById(req.params.id);
+    if (!post) {
+      return res.status(404).json({ error: "Post not found" });
+    }
+
+    const user = await User.findOne({ username: req.user.username });
+    
+    const comment = {
+      username: req.user.username,
+      author: user.name || user.username,
+      avatarUrl: user.avatarUrl || "",
+      content: content.trim(),
+      timestamp: new Date()
+    };
+
+    if (!post.comments) {
+      post.comments = [];
+    }
+    post.comments.push(comment);
+    await post.save();
+
+    res.status(201).json({ ok: true, comment, commentsCount: post.comments.length });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to add comment" });
   }
 });
 
@@ -1952,5 +2160,195 @@ async function startServer() {
     process.exit(1);
   }
 }
+
+// ─── REPORT SYSTEM ───────────────────────────────────────────────────────────
+
+// Submit a report (any authenticated user)
+app.post("/api/reports", authMiddleware, async (req, res) => {
+  try {
+    const reporter = req.user.username;
+    const reported = normalizeUsername(req.body.reported || "");
+    const reason = (req.body.reason || "").trim();
+    const details = (req.body.details || "").trim().slice(0, 500);
+
+    if (!reported || !reason) {
+      return res.status(400).json({ error: "Reported user and reason are required" });
+    }
+    if (reporter === reported) {
+      return res.status(400).json({ error: "You cannot report yourself" });
+    }
+    const targetUser = await User.findOne({ username: reported }).select("username");
+    if (!targetUser) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // Prevent duplicate pending reports from same user
+    const existing = await Report.findOne({ reporter, reported, status: "pending" });
+    if (existing) {
+      return res.status(409).json({ error: "You already have a pending report for this user" });
+    }
+
+    const report = await Report.create({ reporter, reported, reason, details });
+    return res.status(201).json({ ok: true, report });
+  } catch (err) {
+    console.error("Failed to submit report:", err);
+    return res.status(500).json({ error: "Failed to submit report" });
+  }
+});
+
+// ─── ADMIN ROUTES ─────────────────────────────────────────────────────────────
+
+// GET /api/admin/stats — dashboard overview
+app.get("/api/admin/stats", authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const [totalUsers, totalPosts, pendingReports, resolvedReports, dismissedReports] = await Promise.all([
+      User.countDocuments(),
+      Post.countDocuments(),
+      Report.countDocuments({ status: "pending" }),
+      Report.countDocuments({ status: "resolved" }),
+      Report.countDocuments({ status: "dismissed" })
+    ]);
+    return res.json({ totalUsers, totalPosts, pendingReports, resolvedReports, dismissedReports });
+  } catch (err) {
+    return res.status(500).json({ error: "Failed to fetch stats" });
+  }
+});
+
+// GET /api/admin/analytics — user and post creation over time
+app.get("/api/admin/analytics", authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    // Users created per day (using _id timestamp)
+    const newUsers = await User.aggregate([
+      { $addFields: { createdAt: { $toDate: "$_id" } } },
+      { $match: { createdAt: { $gte: sevenDaysAgo } } },
+      { $group: {
+          _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { _id: 1 } }
+    ]);
+
+    // Posts created per day
+    const newPosts = await Post.aggregate([
+      { $match: { timestamp: { $gte: sevenDaysAgo } } },
+      { $group: {
+          _id: { $dateToString: { format: "%Y-%m-%d", date: "$timestamp" } },
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { _id: 1 } }
+    ]);
+
+    return res.json({ newUsers, newPosts });
+  } catch (err) {
+    console.error("Analytics Error:", err);
+    return res.status(500).json({ error: "Failed to fetch analytics" });
+  }
+});
+
+// GET /api/admin/reports — list all reports
+app.get("/api/admin/reports", authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const status = req.query.status || "";
+    const filter = status ? { status } : {};
+    const reports = await Report.find(filter).sort({ createdAt: -1 }).limit(200).lean();
+    return res.json(reports);
+  } catch (err) {
+    return res.status(500).json({ error: "Failed to fetch reports" });
+  }
+});
+
+// PATCH /api/admin/reports/:id — update report status / admin note
+app.patch("/api/admin/reports/:id", authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const { status, adminNote } = req.body;
+    const allowed = ["pending", "resolved", "dismissed"];
+    if (status && !allowed.includes(status)) {
+      return res.status(400).json({ error: "Invalid status" });
+    }
+    const report = await Report.findById(req.params.id);
+    if (!report) return res.status(404).json({ error: "Report not found" });
+
+    if (status) report.status = status;
+    if (typeof adminNote === "string") report.adminNote = adminNote.trim().slice(0, 500);
+    await report.save();
+    return res.json({ ok: true, report });
+  } catch (err) {
+    return res.status(500).json({ error: "Failed to update report" });
+  }
+});
+
+// GET /api/admin/users — list all users
+app.get("/api/admin/users", authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const users = await User.find()
+      .select("username name avatarUrl membershipTier createdAt")
+      .sort({ createdAt: -1 })
+      .lean();
+    return res.json(users);
+  } catch (err) {
+    return res.status(500).json({ error: "Failed to fetch users" });
+  }
+});
+
+// DELETE /api/admin/users/:username — delete/ban a user
+app.delete("/api/admin/users/:username", authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const username = normalizeUsername(req.params.username);
+    const admins = (process.env.ADMIN_USERNAMES || "")
+      .split(",")
+      .map((u) => u.trim().toLowerCase())
+      .filter(Boolean);
+    if (admins.includes(username)) {
+      return res.status(400).json({ error: "Cannot delete an admin account" });
+    }
+    const user = await User.findOne({ username });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    // Remove user data
+    await User.deleteOne({ username });
+    await Message.deleteMany({ $or: [{ from: username }, { to: username }] });
+    await Post.deleteMany({ username });
+    await Report.updateMany({ reported: username }, { $set: { status: "resolved", adminNote: "User account deleted by admin" } });
+
+    return res.json({ ok: true });
+  } catch (err) {
+    return res.status(500).json({ error: "Failed to delete user" });
+  }
+});
+
+// GET /api/admin/posts — list all posts
+app.get("/api/admin/posts", authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const posts = await Post.find()
+      .sort({ timestamp: -1 })
+      .lean();
+    return res.json(posts);
+  } catch (err) {
+    return res.status(500).json({ error: "Failed to fetch posts" });
+  }
+});
+
+// DELETE /api/admin/posts/:id — delete a post
+app.delete("/api/admin/posts/:id", authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.id);
+    if (!post) return res.status(404).json({ error: "Post not found" });
+
+    await Post.deleteOne({ _id: req.params.id });
+    return res.json({ ok: true });
+  } catch (err) {
+    return res.status(500).json({ error: "Failed to delete post" });
+  }
+});
+
+// GET /api/admin/check — check if current user is admin
+app.get("/api/admin/check", authMiddleware, adminMiddleware, (req, res) => {
+  return res.json({ ok: true, admin: req.user.username });
+});
 
 startServer();

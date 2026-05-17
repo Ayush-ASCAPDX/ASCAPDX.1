@@ -10,10 +10,25 @@
 
     let me = getUser() || {};
     const authPromise = requireAuth();
-    const postsPromise = authFetch("/api/posts").then(async (res) => {
-      if (!res.ok) throw new Error("Failed to load posts");
-      return res.json();
-    });
+
+    let postsPromise;
+    const cachedPosts = sessionStorage.getItem("feedCache_posts");
+    if (cachedPosts) {
+      try {
+        postsPromise = Promise.resolve(JSON.parse(cachedPosts));
+      } catch (e) {
+        sessionStorage.removeItem("feedCache_posts");
+      }
+    }
+
+    if (!postsPromise) {
+      postsPromise = authFetch("/api/posts").then(async (res) => {
+        if (!res.ok) throw new Error("Failed to load posts");
+        const data = await res.json();
+        sessionStorage.setItem("feedCache_posts", JSON.stringify(data));
+        return data;
+      });
+    }
 
     const feedContainer = document.getElementById("feedContainer");
     const headerAvatar = document.getElementById("headerUserAvatar");
@@ -335,6 +350,7 @@
               const res = await authFetch(`/api/posts/${post._id}`, { method: "DELETE" });
               if (res.ok) {
                 cardEl.remove();
+                sessionStorage.removeItem("feedCache_posts");
               } else {
                 const data = await res.json();
                 showToast(data.error || "Failed to delete post.", "error");
@@ -373,6 +389,7 @@
             if (currentEditingCard) {
               currentEditingCard.querySelector(".feed-text").textContent = newContent;
             }
+            sessionStorage.removeItem("feedCache_posts");
             editPostModal.classList.add("hidden");
             editPostModal.classList.remove("flex");
             showToast("Post updated successfully!");
@@ -407,8 +424,8 @@
               <p class="feed-meta">${timeStr} &bull; ASCAPDX Network</p>
             </div>
           </div>
-          <button class="feed-more context-menu-trigger" type="button" aria-label="Post options">
-            <span class="material-symbols-outlined">more_horiz</span>
+          <button class="feed-more context-menu-trigger text-[#aebfd8] hover:text-primary transition-colors" type="button" aria-label="Post options">
+            <svg class="w-7 h-7 stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
           </button>
         </div>
         <div class="feed-body">
@@ -420,17 +437,30 @@
           </div>
         ` : ""}
         <div class="feed-actions">
-          <button class="like-btn feed-action" type="button" aria-label="Like post">
-            <span class="material-symbols-outlined">thumb_up</span>
-            <span class="like-count">${Array.isArray(post.likes) ? post.likes.length : 0}</span>
+          <button class="like-btn feed-action flex items-center justify-center gap-2 text-[#b4c4db] hover:text-primary transition-colors" type="button" aria-label="Like post">
+            <svg class="w-[26px] h-[26px] stroke-current fill-none transition-all duration-200" viewBox="0 0 24 24" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>
+            <span class="like-count text-base font-bold">${Array.isArray(post.likes) ? post.likes.length : 0}</span>
           </button>
-          <button class="dislike-btn feed-action" type="button" aria-label="Dislike post">
-            <span class="material-symbols-outlined">thumb_down</span>
-            <span class="dislike-count">${Array.isArray(post.dislikes) ? post.dislikes.length : 0}</span>
+          <button class="dislike-btn feed-action flex items-center justify-center gap-2 text-[#b4c4db] hover:text-[#ff8585] transition-colors" type="button" aria-label="Dislike post">
+            <svg class="w-[26px] h-[26px] stroke-current fill-none transition-all duration-200" viewBox="0 0 24 24" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm12-3h3a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-3"/></svg>
+            <span class="dislike-count text-base font-bold">${Array.isArray(post.dislikes) ? post.dislikes.length : 0}</span>
           </button>
-          <button class="quick-share-btn feed-action" type="button" aria-label="Quick share">
-            <span class="material-symbols-outlined">send</span>
+          <button class="comment-btn feed-action flex items-center justify-center gap-2 text-[#b4c4db] hover:text-primary transition-colors" type="button" aria-label="Comment on post">
+            <svg class="w-[26px] h-[26px] stroke-current fill-none transition-all duration-200" viewBox="0 0 24 24" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            <span class="comment-count text-base font-bold">${Array.isArray(post.comments) ? post.comments.length : 0}</span>
           </button>
+          <button class="quick-share-btn feed-action flex items-center justify-center gap-2 text-[#b4c4db] hover:text-primary transition-colors" type="button" aria-label="Quick share">
+            <svg class="w-[26px] h-[26px] stroke-current fill-none transition-all duration-200" viewBox="0 0 24 24" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          </button>
+        </div>
+        <div class="comments-section hidden">
+          <div class="comments-list"></div>
+          <form class="comment-form">
+            <input type="text" class="comment-input" placeholder="Write a comment..." required />
+            <button class="comment-submit-btn" type="submit" aria-label="Submit comment">
+              <svg class="w-5 h-5 stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            </button>
+          </form>
         </div>
       `;
 
@@ -487,6 +517,7 @@
             dislikeBtn.classList.toggle("disliked", disliked);
             likeCountEl.textContent = data.likes;
             dislikeCountEl.textContent = data.dislikes;
+            sessionStorage.removeItem("feedCache_posts");
           }
         } catch (err) {
           console.error("Failed to like post", err);
@@ -504,6 +535,7 @@
             dislikeBtn.classList.toggle("disliked", disliked);
             likeCountEl.textContent = data.likes;
             dislikeCountEl.textContent = data.dislikes;
+            sessionStorage.removeItem("feedCache_posts");
           }
         } catch (err) {
           console.error("Failed to dislike post", err);
@@ -513,6 +545,84 @@
 
       const quickShareBtn = card.querySelector(".quick-share-btn");
       quickShareBtn.onclick = () => openShareModal(post);
+
+      // Comments integration
+      const commentBtn = card.querySelector(".comment-btn");
+      const commentCountEl = commentBtn.querySelector(".comment-count");
+      const commentsSection = card.querySelector(".comments-section");
+      const commentsList = card.querySelector(".comments-list");
+      const commentForm = card.querySelector(".comment-form");
+      const commentInput = card.querySelector(".comment-input");
+
+      commentBtn.onclick = () => {
+        commentsSection.classList.toggle("hidden");
+        if (!commentsSection.classList.contains("hidden")) {
+          renderCommentsList();
+          commentInput.focus();
+        }
+      };
+
+      function renderCommentsList() {
+        const comments = Array.isArray(post.comments) ? post.comments : [];
+        if (comments.length === 0) {
+          commentsList.innerHTML = `<div style="text-align: center; padding: 18px 0; color: #9fb4cf; font-size: 14px; font-style: italic;">No comments yet. Be the first to reply!</div>`;
+          return;
+        }
+
+        commentsList.innerHTML = comments.map(comment => {
+          const authorName = escapeHtml(comment.author || comment.username || "User");
+          const avatar = comment.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(authorName)}&background=15324f&color=d3e3ff`;
+          const time = comment.timestamp ? new Date(comment.timestamp) : new Date();
+          const timeStr = time.toLocaleDateString([], { month: "short", day: "numeric" }) + " " + time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+          const content = escapeHtml(comment.content || "");
+          
+          return `
+            <div class="comment-item">
+              <img src="${avatar}" alt="${authorName}" class="comment-avatar" />
+              <div class="comment-content-box">
+                <div class="comment-author">${authorName}</div>
+                <div class="comment-text">${content}</div>
+                <span class="comment-time">${timeStr}</span>
+              </div>
+            </div>
+          `;
+        }).join("");
+        
+        // Scroll to bottom
+        commentsList.scrollTop = commentsList.scrollHeight;
+      }
+
+      commentForm.onsubmit = async (e) => {
+        e.preventDefault();
+        const content = commentInput.value.trim();
+        if (!content) return;
+
+        try {
+          const res = await authFetch(`/api/posts/${post._id}/comments`, {
+            method: "POST",
+            body: JSON.stringify({ content })
+          });
+
+          if (res.ok) {
+            const data = await res.json();
+            if (!post.comments) post.comments = [];
+            post.comments.push(data.comment);
+            
+            commentCountEl.textContent = data.commentsCount;
+            commentInput.value = "";
+            renderCommentsList();
+            
+            // Invalidate cache so that visiting again shows comments
+            sessionStorage.removeItem("feedCache_posts");
+          } else {
+            const errData = await res.json();
+            showToast(errData.error || "Failed to post comment", "error");
+          }
+        } catch (err) {
+          console.error("Failed to post comment", err);
+          showToast("Error adding comment", "error");
+        }
+      };
 
       return card;
     }
@@ -573,20 +683,30 @@
   }
 
   // --- STORIES LOGIC ---
-  var storiesContainer = document.getElementById("storiesContainer");
-  var storyUploadInput = document.getElementById("storyUploadInput");
-  var storyViewerModal = document.getElementById("storyViewerModal");
   var allStories = []; 
   var currentStoryUserIndex = 0;
   var currentStoryItemIndex = 0;
   var storyTimeout = null;
   const STORY_DURATION = 5000;
 
-  window.loadStories = async function() {
+  window.loadStories = async function(force = false) {
+    if (!force) {
+      const cached = sessionStorage.getItem("feedCache_stories");
+      if (cached) {
+        try {
+          allStories = JSON.parse(cached);
+          renderStoriesCarousel();
+          return;
+        } catch (e) {
+          sessionStorage.removeItem("feedCache_stories");
+        }
+      }
+    }
     try {
       const res = await authFetch("/api/stories");
       if (res.ok) {
         allStories = await res.json();
+        sessionStorage.setItem("feedCache_stories", JSON.stringify(allStories));
         renderStoriesCarousel();
       }
     } catch (e) {
@@ -595,14 +715,18 @@
   };
 
   function renderStoriesCarousel() {
+    const storiesContainer = document.getElementById("storiesContainer");
     if (!storiesContainer) return;
     const currentUser = getUser();
     const currentUserStoryIndex = allStories.findIndex(g => g.username === currentUser?.username);
     const currentUserStory = currentUserStoryIndex !== -1 ? allStories[currentUserStoryIndex] : null;
-    const yourStoryOnClick = currentUserStory ? `openStoryViewer(${currentUserStoryIndex})` : "document.getElementById('storyUploadInput').click()";
-    
+
     let html = `
-      <button class="story" type="button" onclick="${yourStoryOnClick}">
+      <button class="story" type="button" ${
+        currentUserStory
+          ? `data-story-index="${currentUserStoryIndex}"`
+          : `data-story-upload="true"`
+      }>
         <span class="story-avatar ${currentUserStory ? 'has-story' : 'is-muted'}" style="${currentUserStory ? 'border: 2px solid #52c6f6; padding: 2px;' : ''}">
           <img alt="Your avatar" src="${currentUser?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser?.username || 'U')}&background=15324f&color=d3e3ff`}" />
           ${currentUserStory ? '' : '<span class="story-add">+</span>'}
@@ -612,10 +736,10 @@
     `;
 
     allStories.forEach((group, userIndex) => {
-      if (group.username === currentUser?.username) return; 
+      if (group.username === currentUser?.username) return;
       const avatar = group.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(group.author || group.username)}&background=15324f&color=d3e3ff`;
       html += `
-        <div class="story cursor-pointer" onclick="openStoryViewer(${userIndex})">
+        <div class="story cursor-pointer" data-story-index="${userIndex}">
           <span class="story-avatar has-story" style="border: 2px solid #52c6f6; padding: 2px; border-radius: 999px;">
             <img alt="${group.author || group.username}" src="${avatar}" />
           </span>
@@ -627,8 +751,8 @@
     storiesContainer.innerHTML = html;
   }
 
-  if (storyUploadInput) {
-    storyUploadInput.addEventListener("change", async (e) => {
+  document.addEventListener("change", async (e) => {
+    if (e.target && e.target.id === "storyUploadInput") {
       const file = e.target.files[0];
       if (!file) return;
       e.target.value = "";
@@ -674,7 +798,7 @@
         
         if (res.ok) {
           statusEl.style.display = "none";
-          loadStories();
+          loadStories(true); // force load from db to see new story
         } else {
           throw new Error("Failed to publish");
         }
@@ -682,21 +806,27 @@
         statusEl.textContent = "Error: " + err.message;
         setTimeout(() => { statusEl.style.display = "none"; }, 3000);
       }
-    });
-  }
+    }
+  });
 
   window.openStoryViewer = function(userIndex) {
     if (!allStories[userIndex]) return;
     currentStoryUserIndex = userIndex;
     currentStoryItemIndex = 0;
-    storyViewerModal.classList.remove("hidden");
-    storyViewerModal.classList.add("flex");
+    const storyViewerModal = document.getElementById("storyViewerModal");
+    if (storyViewerModal) {
+      storyViewerModal.classList.remove("hidden");
+      storyViewerModal.classList.add("flex");
+    }
     renderStoryItem();
   };
 
   function closeStoryViewer() {
-    storyViewerModal.classList.add("hidden");
-    storyViewerModal.classList.remove("flex");
+    const storyViewerModal = document.getElementById("storyViewerModal");
+    if (storyViewerModal) {
+      storyViewerModal.classList.add("hidden");
+      storyViewerModal.classList.remove("flex");
+    }
     clearTimeout(storyTimeout);
     const vid = document.getElementById("storyViewerVideo");
     if(vid) vid.pause();
@@ -757,7 +887,7 @@
       img.onerror = () => {
         // Show a placeholder or error state if needed
       };
-      img.src = `${story.mediaUrl}?t=${Date.now()}`;
+      img.src = story.mediaUrl;
       
       // If image is already in cache and loaded instantly
       if (img.complete) {
@@ -784,12 +914,23 @@
     }
   }
 
-  const closeBtn = document.getElementById("closeStoryViewer");
-  if (closeBtn) closeBtn.addEventListener("click", closeStoryViewer);
-
-  const tapLeft = document.getElementById("storyTapLeft");
-  if (tapLeft) tapLeft.addEventListener("click", prevStory);
-
-  const tapRight = document.getElementById("storyTapRight");
-  if (tapRight) tapRight.addEventListener("click", nextStory);
+  document.addEventListener("click", (e) => {
+    // Story carousel clicks
+    const storyEl = e.target.closest("[data-story-index]");
+    if (storyEl) {
+      const idx = parseInt(storyEl.getAttribute("data-story-index"), 10);
+      if (!isNaN(idx)) openStoryViewer(idx);
+      return;
+    }
+    const uploadEl = e.target.closest("[data-story-upload]");
+    if (uploadEl) {
+      const inp = document.getElementById("storyUploadInput");
+      if (inp) inp.click();
+      return;
+    }
+    // Story viewer controls
+    if (e.target.closest("#closeStoryViewer")) closeStoryViewer();
+    if (e.target.closest("#storyTapLeft")) prevStory();
+    if (e.target.closest("#storyTapRight")) nextStory();
+  });
 })();

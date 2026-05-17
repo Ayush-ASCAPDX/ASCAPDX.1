@@ -1,4 +1,4 @@
-const CACHE_VERSION = "v6";
+const CACHE_VERSION = "v7";
 const STATIC_CACHE = `sc-static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `sc-runtime-${CACHE_VERSION}`;
 const API_CACHE = `sc-api-${CACHE_VERSION}`;
@@ -8,27 +8,20 @@ const CACHE_PREFIXES = ["sc-static-", "sc-runtime-", "sc-api-", "sc-media-"];
 const APP_SHELL = [
   "/",
   "/chat",
+  "/feed",
   "/register",
   "/settings",
   "/profile",
   "/groups",
-  "/groups/join",
-  "/video",
   "/style.css",
   "/auth.js",
-  "/theme.js",
   "/script.js",
-  "/video.js",
-  "/profile.js",
-  "/groups.js",
-  "/join-group.js",
-  "/group.js",
-  "/notifications-loader.js",
-  "/call-notifications.js",
+  "/feed.js",
+  "/mobile-nav.js",
+  "/nav-loader.js",
   "/pwa.js",
   "/manifest.webmanifest",
   "/icon.svg",
-  "/icon-maskable.svg",
   "/favicon.ico"
 ];
 
@@ -51,9 +44,17 @@ async function trimCache(cacheName, maxEntries) {
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(STATIC_CACHE)
-      .then((cache) => cache.addAll(APP_SHELL))
-      .then(() => self.skipWaiting())
+    caches.open(STATIC_CACHE).then(async (cache) => {
+      // Cache each asset individually — skip any that fail (404, network error, etc.)
+      await Promise.allSettled(
+        APP_SHELL.map((url) =>
+          cache.add(url).catch(() => {
+            console.warn("[SW] Failed to cache:", url);
+          })
+        )
+      );
+      await self.skipWaiting();
+    })
   );
 });
 
@@ -135,6 +136,11 @@ self.addEventListener("fetch", (event) => {
       })
     );
     return;
+  }
+
+  // Admin API routes must NEVER be cached — always bypass to network directly.
+  if (url.origin === self.location.origin && url.pathname.startsWith("/api/admin/")) {
+    return; // Let the browser handle it natively
   }
 
   // API GET requests: network-first with short timeout and cache fallback.

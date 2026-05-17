@@ -4,6 +4,7 @@
   let selectedUser = "";
   let usersPresence = {};
   let unreadCounts = {};
+  let cachedRecommendedUsernames = null;
   let userSearchTerm = "";
   let isAtBottom = true;
   let chatHasMoreHistory = false;
@@ -14,6 +15,7 @@
   // DOM references used across multiple functions
   let usersListEl, currentUserEl, chatWithEl, messagesEl, presenceTextEl, videoCallBtn, deleteConversationBtn, chatMenuBtn, chatMenu, backToChatsBtn, sendBtn, attachBtn, fileInputEl, fileLoaderEl, userSearchInput, messageInputEl, composerMetaEl, scrollToBottomBtn, chatErrorPopupEl, chatErrorPopupTextEl, typingIndicatorEl;
   let messageContextMenu, ctxEditBtn, ctxReplyBtn, ctxForwardBtn, ctxCopyBtn, ctxDeleteBtn, editIndicator, cancelEditBtn, replyIndicator, cancelReplyBtn, replyTargetUser, replyTargetText, forwardModal, forwardUserList, closeForwardModalBtn;
+  let chatHeaderConnectBtn;
   let changeThemeBtn, themeModal, closeThemeModal, chatLayoutEl;
   let mobileTabletQuery = window.matchMedia("(max-width: 990px)");
   let replyingToMsg = null, currentForwardMessage = null, isSendingFile = false, pendingFileSend = null, chatErrorPopupTimer = null;
@@ -278,6 +280,7 @@
     chatErrorPopupEl = document.getElementById("chatErrorPopup");
     chatErrorPopupTextEl = document.getElementById("chatErrorPopupText");
     typingIndicatorEl = document.getElementById("typingIndicator");
+    chatHeaderConnectBtn = document.getElementById("chatHeaderConnectBtn");
 
     messageContextMenu = document.getElementById("messageContextMenu");
     ctxEditBtn = document.getElementById("ctxEditBtn");
@@ -665,39 +668,70 @@
   }
 
   function renderUsers() {
-    // usersListEl is now guaranteed to be a fresh reference
-    const usernames = Object.keys(usersPresence)
+    const following = new Set(Array.isArray(me.following) ? me.following : []);
+    const followers = new Set(Array.isArray(me.followers) ? me.followers : []);
+    
+    let filteredUsernames = Object.keys(usersPresence)
       .filter((u) => u !== currentUser)
       .filter((u) => {
         if (!userSearchTerm) return true;
         const name = usersPresence[u]?.name || "";
-        const haystack = `${u} ${name}`.toLowerCase();
-        return haystack.includes(userSearchTerm);
-      })
-      .sort();
+        return `${u} ${name}`.toLowerCase().includes(userSearchTerm);
+      });
 
-    if (!usernames.length) {
+    if (!filteredUsernames.length) {
       usersListEl.innerHTML = "<div class='empty-state'>No chats match your search.</div>";
       return;
     }
 
-    const fragment = document.createDocumentFragment();
-    usernames.slice(0, USER_LIST_BATCH_SIZE).forEach((username) => {
-      fragment.appendChild(buildUserRow(username));
+    const contacts = [];
+    const others = [];
+    
+    filteredUsernames.forEach(u => {
+      if (following.has(u) || followers.has(u)) {
+        contacts.push(u);
+      } else {
+        others.push(u);
+      }
     });
-    usersListEl.replaceChildren(fragment);
 
-    if (usernames.length <= USER_LIST_BATCH_SIZE) {
-      return;
+    contacts.sort();
+    
+    let recommended = [];
+    if (userSearchTerm) {
+      recommended = others.sort();
+    } else {
+      if (!cachedRecommendedUsernames && others.length > 0) {
+        cachedRecommendedUsernames = others.sort(() => 0.5 - Math.random()).slice(0, 5);
+      }
+      if (cachedRecommendedUsernames) {
+        recommended = cachedRecommendedUsernames.filter(u => others.includes(u));
+      }
     }
 
-    requestAnimationFrame(() => {
-      const extraFragment = document.createDocumentFragment();
-      usernames.slice(USER_LIST_BATCH_SIZE).forEach((username) => {
-        extraFragment.appendChild(buildUserRow(username));
-      });
-      usersListEl.appendChild(extraFragment);
-    });
+    const fragment = document.createDocumentFragment();
+
+    if (contacts.length > 0) {
+      const header = document.createElement("div");
+      header.className = "sidebar-section-header";
+      header.textContent = "Your Contacts";
+      header.style.cssText = "padding: 12px 16px 8px; font-size: 0.75rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em;";
+      fragment.appendChild(header);
+      
+      contacts.forEach(u => fragment.appendChild(buildUserRow(u)));
+    }
+
+    if (recommended.length > 0) {
+      const header = document.createElement("div");
+      header.className = "sidebar-section-header";
+      header.textContent = userSearchTerm ? "Other Users" : "Recommended";
+      header.style.cssText = "padding: 16px 16px 8px; font-size: 0.75rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em;";
+      fragment.appendChild(header);
+      
+      recommended.forEach(u => fragment.appendChild(buildUserRow(u)));
+    }
+
+    usersListEl.replaceChildren(fragment);
   }
 
   function buildUserRow(username) {
@@ -1390,7 +1424,44 @@
     chatOldestTimestamp = "";
     shouldPinToLatestOnOpen = true;
     unreadCounts[username] = 0;
-    chatWithEl.innerText = `${nameText}`;
+    
+    const user = usersPresence[username];
+    const headerName = user?.name ? user.name : `@${username}`;
+    chatWithEl.innerText = headerName;
+
+    if (chatHeaderConnectBtn) {
+      chatHeaderConnectBtn.classList.remove("hidden");
+      if (!me.following) me.following = [];
+      let isFollowing = me.following.includes(username);
+      chatHeaderConnectBtn.textContent = isFollowing ? "Disconnect" : "Connect";
+      chatHeaderConnectBtn.onclick = async () => {
+        const action = chatHeaderConnectBtn.textContent.toLowerCase() === "connect" ? "follow" : "unfollow";
+        isFollowing = action === "follow";
+        chatHeaderConnectBtn.textContent = isFollowing ? "Disconnect" : "Connect";
+        
+        if (isFollowing) {
+          if (!me.following.includes(username)) me.following.push(username);
+        } else {
+          me.following = me.following.filter(u => u !== username);
+        }
+        localStorage.setItem("user", JSON.stringify(me));
+
+        const res = await authFetch(`/api/users/${encodeURIComponent(username)}/${action}`, { 
+          method: action === "follow" ? "POST" : "DELETE" 
+        });
+        
+        if (!res.ok) {
+          isFollowing = !isFollowing;
+          chatHeaderConnectBtn.textContent = isFollowing ? "Disconnect" : "Connect";
+          if (isFollowing) {
+            if (!me.following.includes(username)) me.following.push(username);
+          } else {
+            me.following = me.following.filter(u => u !== username);
+          }
+          localStorage.setItem("user", JSON.stringify(me));
+        }
+      };
+    }
     messagesEl.innerHTML = "";
     setOlderHistoryLoader(false);
     const cached = getConversationCache(username);

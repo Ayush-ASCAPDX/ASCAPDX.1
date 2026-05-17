@@ -275,10 +275,120 @@
     .feed-actions {
       min-height: 104px;
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-columns: repeat(4, minmax(0, 1fr));
       align-items: center;
       border-top: 1px solid rgba(255, 255, 255, 0.05);
       padding: 0 10px;
+    }
+
+    .comments-section {
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      padding: 22px 28px;
+      background: rgba(0, 10, 24, 0.2);
+    }
+
+    .comments-list {
+      max-height: 260px;
+      overflow-y: auto;
+      margin-bottom: 18px;
+    }
+
+    .comments-list::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    .comments-list::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 999px;
+    }
+
+    .comment-item {
+      display: flex;
+      gap: 14px;
+      margin-bottom: 14px;
+      align-items: flex-start;
+    }
+
+    .comment-avatar {
+      width: 42px;
+      height: 42px;
+      flex: 0 0 42px;
+      border-radius: 999px;
+      object-fit: cover;
+      border: 2px solid rgba(67, 184, 234, 0.15);
+      background: #06172c;
+    }
+
+    .comment-content-box {
+      flex: 1;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      padding: 10px 16px;
+      border-radius: 16px;
+      min-width: 0;
+    }
+
+    .comment-author {
+      font-size: 15px;
+      font-weight: 700;
+      color: #78d2ff;
+      margin-bottom: 2px;
+    }
+
+    .comment-text {
+      font-size: 15px;
+      color: #d3e3ff;
+      line-height: 1.5;
+      word-break: break-word;
+    }
+
+    .comment-time {
+      font-size: 12px;
+      color: #9fb4cf;
+      margin-top: 4px;
+      display: block;
+    }
+
+    .comment-form {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-top: 14px;
+    }
+
+    .comment-input {
+      flex: 1;
+      background: #0d1e32;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: #d3e3ff;
+      padding: 12px 18px;
+      border-radius: 999px;
+      font-size: 15px;
+      outline: none;
+      transition: border-color 160ms ease;
+    }
+
+    .comment-input:focus {
+      border-color: #43b8ea;
+    }
+
+    .comment-submit-btn {
+      width: 46px;
+      height: 46px;
+      display: grid;
+      place-items: center;
+      border-radius: 999px;
+      background: rgba(67, 184, 234, 0.1);
+      color: #78d2ff;
+      transition: background 160ms ease, transform 160ms ease;
+    }
+
+    .comment-submit-btn:hover {
+      background: rgba(67, 184, 234, 0.2);
+    }
+
+    .comment-submit-btn:active {
+      transform: scale(0.95);
     }
 
     .feed-action {
@@ -296,8 +406,8 @@
       transition: background-color 160ms ease, color 160ms ease, transform 160ms ease;
     }
 
-    .feed-action .material-symbols-outlined {
-      font-size: 32px;
+    .feed-action svg {
+      transition: transform 160ms ease, fill 160ms ease;
     }
 
     .feed-action:hover,
@@ -306,9 +416,19 @@
       background: rgba(255, 255, 255, 0.04);
     }
 
+    .feed-action.liked svg {
+      fill: #78d2ff;
+      transform: scale(1.08);
+    }
+
     .feed-action.disliked {
       color: #ff8585;
       background: rgba(255, 255, 255, 0.04);
+    }
+
+    .feed-action.disliked svg {
+      fill: #ff8585;
+      transform: scale(1.08);
     }
 
     .feed-action:active,
@@ -986,19 +1106,32 @@
     <div class="flex items-center gap-8">
       <button class="grid h-12 w-12 place-items-center transition-transform active:scale-95" type="button"
         aria-label="Open menu">
-        <span class="material-symbols-outlined header-icon">menu</span>
+        <svg class="w-[25px] h-[25px] stroke-current fill-none text-[#b7d7f6]" viewBox="0 0 24 24" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <line x1="3" y1="12" x2="21" y2="12" />
+          <line x1="3" y1="6" x2="21" y2="6" />
+          <line x1="3" y1="18" x2="21" y2="18" />
+        </svg>
       </button>
       <h1 class="brand-title">Orbit</h1>
     </div>
     <div class="flex items-center gap-4 feed-header-actions">
       <button class="grid h-12 w-12 place-items-center transition-transform active:scale-95" type="button"
         aria-label="Search feed">
-        <span class="material-symbols-outlined header-icon">search</span>
+        <svg class="w-[25px] h-[25px] stroke-current fill-none text-[#b7d7f6]" viewBox="0 0 24 24" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8" />
+          <line x1="21" y1="21" x2="16.65" y2="16.65" />
+        </svg>
       </button>
       <button class="grid h-12 w-12 place-items-center transition-transform active:scale-95" type="button"
         aria-label="Create post"
         onclick="window.navigateTo ? window.navigateTo('/create-post') : (window.location.href = '/create-post')">
-        <span class="material-symbols-outlined header-icon">add</span>
+        <svg class="w-[25px] h-[25px] stroke-current fill-none text-[#b7d7f6]" viewBox="0 0 24 24" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="5" x2="12" y2="19" />
+          <line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
       </button>
     </div>
   </header>
@@ -1035,7 +1168,11 @@
         <h3 class="text-2xl font-bold text-white">Share to...</h3>
         <button id="closeShareModalBtn"
           class="flex h-10 w-10 items-center justify-center rounded-full bg-white/5 text-white transition-colors hover:bg-white/10">
-          <span class="material-symbols-outlined">close</span>
+          <svg class="w-5 h-5 stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2.2" stroke-linecap="round"
+            stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
         </button>
       </div>
 
@@ -1052,21 +1189,34 @@
           <button id="shareWhatsApp" class="flex flex-col items-center gap-3 transition-transform hover:scale-105">
             <div
               class="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#25D366]/10 text-[#25D366] ring-1 ring-[#25D366]/20">
-              <span class="material-symbols-outlined text-3xl">chat</span>
+              <svg class="w-8 h-8 stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <path
+                  d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+              </svg>
             </div>
             <span class="text-xs font-medium text-white/80">WhatsApp</span>
           </button>
           <button id="shareInstagram" class="flex flex-col items-center gap-3 transition-transform hover:scale-105">
             <div
               class="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#E1306C]/10 text-[#E1306C] ring-1 ring-[#E1306C]/20">
-              <span class="material-symbols-outlined text-3xl">photo_camera</span>
+              <svg class="w-8 h-8 stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+                <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+                <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
+              </svg>
             </div>
             <span class="text-xs font-medium text-white/80">Instagram</span>
           </button>
           <button id="shareCopyLink" class="flex flex-col items-center gap-3 transition-transform hover:scale-105">
             <div
               class="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/5 text-white/90 ring-1 ring-white/10">
-              <span class="material-symbols-outlined text-3xl">content_copy</span>
+              <svg class="w-8 h-8 stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+              </svg>
             </div>
             <span class="text-xs font-medium text-white/80">Copy Link</span>
           </button>
@@ -1076,30 +1226,63 @@
   </div>
 
   <div id="postContextMenu" class="fixed z-[2500] hidden min-w-[180px] p-2">
-    <button class="w-full flex items-center gap-3 rounded-xl p-3 text-sm transition-colors hover:bg-white/5"
+    <button
+      class="w-full flex items-center gap-3 rounded-xl p-3 text-sm transition-colors hover:bg-white/5 text-[#d3e3ff]"
       id="ctxLike" type="button">
-      <span class="material-symbols-outlined text-sm">favorite</span> <span id="ctxLikeText">Like Post</span>
+      <svg class="w-5 h-5 stroke-current fill-none text-[#78d2ff]" viewBox="0 0 24 24" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round">
+        <path
+          d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+      </svg> <span id="ctxLikeText">Like Post</span>
     </button>
-    <button class="w-full flex items-center gap-3 rounded-xl p-3 text-sm transition-colors hover:bg-white/5"
+    <button
+      class="w-full flex items-center gap-3 rounded-xl p-3 text-sm transition-colors hover:bg-white/5 text-[#d3e3ff]"
       id="ctxShare" type="button">
-      <span class="material-symbols-outlined text-sm">share</span> <span>Share Post</span>
+      <svg class="w-5 h-5 stroke-current fill-none text-[#78d2ff]" viewBox="0 0 24 24" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="18" cy="5" r="3" />
+        <circle cx="6" cy="12" r="3" />
+        <circle cx="18" cy="19" r="3" />
+        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+        <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+      </svg> <span>Share Post</span>
     </button>
-    <button class="w-full flex items-center gap-3 rounded-xl p-3 text-sm transition-colors hover:bg-white/5"
+    <button
+      class="w-full flex items-center gap-3 rounded-xl p-3 text-sm transition-colors hover:bg-white/5 text-[#d3e3ff]"
       id="ctxCopyLink" type="button">
-      <span class="material-symbols-outlined text-sm">link</span> <span>Copy Link</span>
+      <svg class="w-5 h-5 stroke-current fill-none text-[#78d2ff]" viewBox="0 0 24 24" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round">
+        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+      </svg> <span>Copy Link</span>
     </button>
-    <button class="w-full flex items-center gap-3 rounded-xl p-3 text-sm transition-colors hover:bg-white/5"
+    <button
+      class="w-full flex items-center gap-3 rounded-xl p-3 text-sm transition-colors hover:bg-white/5 text-[#d3e3ff]"
       id="ctxSave" type="button">
-      <span class="material-symbols-outlined text-sm">bookmark</span> <span id="ctxSaveText">Save Post</span>
+      <svg class="w-5 h-5 stroke-current fill-none text-[#78d2ff]" viewBox="0 0 24 24" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round">
+        <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+      </svg> <span id="ctxSaveText">Save Post</span>
     </button>
-    <button class="w-full flex items-center gap-3 rounded-xl p-3 text-sm transition-colors hover:bg-white/5"
+    <button
+      class="w-full flex items-center gap-3 rounded-xl p-3 text-sm transition-colors hover:bg-white/5 text-[#d3e3ff]"
       id="ctxEdit" style="display: none;" type="button">
-      <span class="material-symbols-outlined text-sm">edit</span> <span>Edit Post</span>
+      <svg class="w-5 h-5 stroke-current fill-none text-[#78d2ff]" viewBox="0 0 24 24" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round">
+        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+        <path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4z" />
+      </svg> <span>Edit Post</span>
     </button>
     <button
       class="w-full flex items-center gap-3 rounded-xl p-3 text-sm text-red-400 transition-colors hover:bg-red-400/10"
       id="ctxDelete" style="display: none;" type="button">
-      <span class="material-symbols-outlined text-sm">delete</span> <span>Delete Post</span>
+      <svg class="w-5 h-5 stroke-current fill-none text-red-400" viewBox="0 0 24 24" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="3 6 5 6 21 6" />
+        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+        <line x1="10" y1="11" x2="10" y2="17" />
+        <line x1="14" y1="11" x2="14" y2="17" />
+      </svg> <span>Delete Post</span>
     </button>
   </div>
 
@@ -1124,7 +1307,12 @@
     id="confirmModal">
     <div class="share-dialog p-8 w-full max-w-sm text-center">
       <div class="w-16 h-16 bg-red-400/10 text-red-400 rounded-full flex items-center justify-center mx-auto mb-6">
-        <span class="material-symbols-outlined text-3xl" style="color: #ef4444;">warning</span>
+        <svg class="w-8 h-8 stroke-current fill-none text-[#ef4444]" viewBox="0 0 24 24" stroke-width="2.2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+          <line x1="12" y1="9" x2="12" y2="13" />
+          <line x1="12" y1="17" x2="12.01" y2="17" />
+        </svg>
       </div>
       <h3 class="mb-2 text-xl font-bold" id="confirmTitle">Are you sure?</h3>
       <p class="text-muted mb-8" id="confirmMessage">This action cannot be undone.</p>
@@ -1151,10 +1339,17 @@
     <div class="relative w-full h-full flex items-center justify-center bg-black/90 select-none"
       id="storyMediaContainer">
       <div id="storyLoader" class="absolute hidden">
-        <span class="material-symbols-outlined animate-spin text-4xl text-white/50">progress_activity</span>
+        <svg class="animate-spin h-10 w-10 text-white/50" xmlns="http://www.w3.org/2000/svg" fill="none"
+          viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor"
+            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+          </path>
+        </svg>
       </div>
       <img id="storyViewerImage" class="max-w-full max-h-full object-contain hidden" src="">
-      <video id="storyViewerVideo" class="max-w-full max-h-full object-contain hidden" playsinline></video>
+      <video id="storyViewerVideo" class="max-w-full max-h-full object-contain hidden" playsinline muted
+        autoplay></video>
       <div id="storyCaption"
         class="absolute bottom-12 left-0 w-full text-center p-4 text-[1.1rem] font-medium drop-shadow-lg"></div>
 

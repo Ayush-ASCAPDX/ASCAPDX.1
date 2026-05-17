@@ -82,6 +82,9 @@ async function authFetch(url, options = {}) {
     headers.Authorization = `Bearer ${token}`;
   }
 
+  // Marker header — proves this request came from the app JS, not a browser URL bar
+  headers["X-App-Request"] = "1";
+
   const response = await fetch(url, {
     ...options,
     headers
