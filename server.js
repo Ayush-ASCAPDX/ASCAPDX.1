@@ -1374,7 +1374,7 @@ app.get("/api/groups", authMiddleware, async (req, res) => {
 app.get("/api/groups/discover", authMiddleware, async (req, res) => {
   const username = req.user.username;
   const groups = await Group.find({ isPrivate: false })
-    .select("name slug owner members isPrivate updatedAt")
+    .select("name slug owner members isPrivate avatarUrl updatedAt")
     .sort({ updatedAt: -1 });
 
   return res.json(groups.map((group) => ({
@@ -1383,6 +1383,7 @@ app.get("/api/groups/discover", authMiddleware, async (req, res) => {
     slug: group.slug,
     owner: group.owner,
     isPrivate: false,
+    avatarUrl: group.avatarUrl || "",
     memberCount: Array.isArray(group.members) ? group.members.length : 0,
     joined: Array.isArray(group.members) ? group.members.includes(username) : false,
     updatedAt: group.updatedAt || null
@@ -1402,6 +1403,8 @@ app.post("/api/groups", authMiddleware, async (req, res) => {
     return res.status(400).json({ error: "Custom domain slug must be 3 to 32 characters" });
   }
 
+  const avatarUrl = (req.body.avatarUrl || "").trim();
+
   const ownerUser = await User.findOne({ username: owner }).select("membershipTier");
   if (!ownerUser) {
     return res.status(404).json({ error: "User not found" });
@@ -1420,7 +1423,8 @@ app.post("/api/groups", authMiddleware, async (req, res) => {
     slug,
     owner,
     isPrivate,
-    members: [owner]
+    members: [owner],
+    avatarUrl
   });
   return res.status(201).json(group);
 });
@@ -1523,7 +1527,18 @@ app.get("/api/groups/:slug/messages", authMiddleware, async (req, res) => {
     : { groupSlug: slug };
 
   const messages = await GroupMessage.find(queryFilter).sort({ timestamp: -1 }).limit(GROUP_HISTORY_LIMIT).lean();
-  return res.json(messages.reverse());
+  
+  // Fetch sender avatars in a single query to avoid N+1 queries
+  const senders = [...new Set(messages.map(m => m.from))];
+  const users = await User.find({ username: { $in: senders } }).select("username avatarUrl").lean();
+  const avatarMap = new Map(users.map(u => [u.username, u.avatarUrl || ""]));
+
+  const messagesWithAvatar = messages.map(m => ({
+    ...m,
+    senderAvatarUrl: avatarMap.get(m.from) || ""
+  }));
+
+  return res.json(messagesWithAvatar.reverse());
 });
 
 app.post("/api/groups/:slug/leave", authMiddleware, async (req, res) => {
@@ -1969,12 +1984,22 @@ io.on("connection", async (socket) => {
         .limit(hasAfter ? 200 : GROUP_HISTORY_LIMIT)
         .lean();
 
+      // Fetch sender avatars in a single query to avoid N+1 queries
+      const senders = [...new Set(history.map(m => m.from))];
+      const users = await User.find({ username: { $in: senders } }).select("username avatarUrl").lean();
+      const avatarMap = new Map(users.map(u => [u.username, u.avatarUrl || ""]));
+
+      const historyWithAvatar = history.map(m => ({
+        ...m,
+        senderAvatarUrl: avatarMap.get(m.from) || ""
+      }));
+
       socket.emit("groupHistory", {
         slug: normalized,
         before: hasBefore ? beforeDate.toISOString() : "",
         after: hasAfter ? afterDate.toISOString() : "",
-        messages: hasAfter ? history : history.reverse(),
-        hasMore: hasAfter ? false : history.length === GROUP_HISTORY_LIMIT
+        messages: hasAfter ? historyWithAvatar : historyWithAvatar.reverse(),
+        hasMore: hasAfter ? false : historyWithAvatar.length === GROUP_HISTORY_LIMIT
       });
       console.log(`Emitted groupHistory for ${normalized} with ${history.length} messages.`);
     } catch (error) {
@@ -2006,7 +2031,12 @@ io.on("connection", async (socket) => {
         reactions: []
       });
 
-      const payload = { slug: normalized, message: saved };
+      // Find the sender user to get their avatarUrl dynamically
+      const senderUser = await User.findOne({ username }).select("avatarUrl").lean();
+      const savedObj = saved.toObject();
+      savedObj.senderAvatarUrl = senderUser ? (senderUser.avatarUrl || "") : "";
+
+      const payload = { slug: normalized, message: savedObj };
 
       // Broadcast to everyone currently viewing the group chat room.
       io.to(`group:${normalized}`).emit("groupMessage", payload);

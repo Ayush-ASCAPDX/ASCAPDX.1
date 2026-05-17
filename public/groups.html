@@ -676,6 +676,20 @@
   <div class="modal-backdrop" id="createGroupModal" aria-hidden="true">
     <form class="create-modal" id="createGroupForm">
       <h3 class="modal-title">Create Group</h3>
+      
+      <!-- Group Avatar Upload -->
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 8px; margin-bottom: 20px;">
+        <div id="groupAvatarUploadTrigger" style="cursor: pointer; position: relative;">
+          <div style="width: 76px; height: 76px; border-radius: 999px; border: 2px dashed rgba(143, 213, 255, 0.4); display: flex; align-items: center; justify-content: center; overflow: hidden; background: rgba(16, 34, 56, 0.6); transition: all 0.2s ease;" onmouseover="this.style.borderColor='#8fd5ff'; this.style.transform='scale(1.03)';" onmouseout="this.style.borderColor='rgba(143, 213, 255, 0.4)'; this.style.transform='scale(1)';">
+            <img id="groupAvatarPreview" src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" alt="Group Avatar" style="width: 100%; height: 100%; object-fit: cover; display: none;">
+            <span id="groupAvatarPlaceholder" style="font-size: 1.6rem; color: #8fd5ff; opacity: 0.85;">📷</span>
+          </div>
+        </div>
+        <span style="font-size: 0.78rem; color: #8fd5ff; font-weight: 500; letter-spacing: 0.01em; opacity: 0.8;">Upload Avatar</span>
+        <input type="file" id="groupAvatarFile" accept="image/*" style="display: none;">
+        <input type="hidden" id="groupAvatarUrl" value="">
+      </div>
+
       <div class="modal-grid">
         <input class="modal-input" id="createGroupName" type="text" placeholder="Group name" required>
         <input class="modal-input" id="createGroupSlug" type="text" placeholder="Group slug (e.g. dev-talk)" required>

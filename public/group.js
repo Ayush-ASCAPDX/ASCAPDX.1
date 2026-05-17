@@ -210,7 +210,30 @@
     if (headerNameEl) headerNameEl.textContent = name;
     if (headerSlugEl) headerSlugEl.textContent = `#${groupData.slug} · Owner: @${groupData.owner}`;
     if (memberCountEl) memberCountEl.textContent = groupData.members?.length || 0;
-    if (groupInitialEl) groupInitialEl.textContent = name.charAt(0).toUpperCase();
+    
+    if (groupInitialEl) {
+      const avatarImg = document.getElementById("groupAvatarImg");
+      const initialText = document.getElementById("groupInitialText");
+      if (groupData.avatarUrl) {
+        if (avatarImg) {
+          avatarImg.src = groupData.avatarUrl;
+          avatarImg.style.display = "block";
+        }
+        if (initialText) {
+          initialText.style.display = "none";
+        }
+      } else {
+        if (avatarImg) {
+          avatarImg.style.display = "none";
+        }
+        if (initialText) {
+          initialText.style.display = "block";
+          initialText.textContent = name.charAt(0).toUpperCase();
+        } else {
+          groupInitialEl.textContent = name.charAt(0).toUpperCase();
+        }
+      }
+    }
     
     const settingsBtn = document.getElementById("groupSettingsBtn");
     if (groupData.owner === me.username) {
@@ -258,25 +281,36 @@
     }
     
     if (isMe) {
-      div.className = "flex flex-col items-end gap-1 self-end max-w-[85%] group";
+      div.className = "flex items-end gap-1.5 md:gap-sm self-end max-w-[92%] md:max-w-[85%] group justify-end";
+
+      const avatarHtml = msg.senderAvatarUrl
+        ? `<img class="w-7 h-7 md:w-8 md:h-8 rounded-full object-cover border border-primary/30 mb-4 md:mb-5 order-last" src="${msg.senderAvatarUrl}" alt="Me">`
+        : `<div class="w-7 h-7 md:w-8 md:h-8 rounded-full bg-primary text-on-primary flex items-center justify-center text-[10px] font-bold border border-primary/30 mb-4 md:mb-5 order-last">${msg.from.charAt(0).toUpperCase()}</div>`;
+
       div.innerHTML = `
-        <div class="message-bubble-content bg-primary-container ${isMedia ? 'p-2' : 'p-md'} rounded-2xl rounded-br-none glow-active message-shadow cursor-pointer select-none">
-          ${replyPreviewHtml}${contentHtml}${reactionsHtml}
+        <div class="flex flex-col items-end gap-1">
+          <div class="message-bubble-content bg-primary-container ${isMedia ? 'p-1.5 md:p-2' : 'p-3 md:p-md'} rounded-2xl rounded-br-none glow-active message-shadow cursor-pointer select-none">
+            ${replyPreviewHtml}${contentHtml}${reactionsHtml}
+          </div>
+          <div class="flex items-center gap-1 px-1">
+            <span class="text-[10px] text-outline">${formatTime(msg.timestamp)}</span>
+            <span class="material-symbols-outlined text-[14px] text-primary" style="font-variation-settings: 'FILL' 1;">done_all</span>
+          </div>
         </div>
-        <div class="flex items-center gap-1 px-1">
-          <span class="text-[10px] text-outline">${formatTime(msg.timestamp)}</span>
-          <span class="material-symbols-outlined text-[14px] text-primary" style="font-variation-settings: 'FILL' 1;">done_all</span>
-        </div>
+        ${avatarHtml}
       `;
     } else {
-      div.className = "flex items-end gap-sm max-w-[85%] group";
+      div.className = "flex items-end gap-1.5 md:gap-sm max-w-[92%] md:max-w-[85%] group";
+      
+      const avatarHtml = msg.senderAvatarUrl
+        ? `<img class="w-7 h-7 md:w-8 md:h-8 rounded-full object-cover border border-outline-variant mb-4 md:mb-5" src="${msg.senderAvatarUrl}" alt="${escapeHtml(msg.from)}">`
+        : `<div class="w-7 h-7 md:w-8 md:h-8 rounded-full bg-surface-container-highest flex items-center justify-center text-[10px] font-bold border border-outline-variant mb-4 md:mb-5">${msg.from.charAt(0).toUpperCase()}</div>`;
+
       div.innerHTML = `
-        <div class="w-8 h-8 rounded-full bg-surface-container-highest flex items-center justify-center text-[10px] font-bold border border-outline-variant mb-5">
-          ${msg.from.charAt(0).toUpperCase()}
-        </div>
+        ${avatarHtml}
         <div class="flex flex-col gap-1">
           <span class="text-[10px] text-primary px-1">@${msg.from}</span>
-          <div class="message-bubble-content bg-surface-container ${isMedia ? 'p-2' : 'p-md'} rounded-2xl rounded-bl-none border border-outline-variant/10 message-shadow select-none">
+          <div class="message-bubble-content bg-surface-container ${isMedia ? 'p-1.5 md:p-2' : 'p-3 md:p-md'} rounded-2xl rounded-bl-none border border-outline-variant/10 message-shadow select-none">
             ${replyPreviewHtml}${contentHtml}${reactionsHtml}
           </div>
           <span class="text-[10px] text-outline px-1">${formatTime(msg.timestamp)}</span>

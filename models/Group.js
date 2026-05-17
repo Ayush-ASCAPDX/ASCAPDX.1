@@ -27,6 +27,10 @@ const groupSchema = new mongoose.Schema({
   isPrivate: {
     type: Boolean,
     default: false
+  },
+  avatarUrl: {
+    type: String,
+    default: ""
   }
 }, {
   timestamps: true

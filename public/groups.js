@@ -21,6 +21,12 @@
   const createGroupPrivateEl = document.getElementById("createGroupPrivate");
   const createGroupErrorEl = document.getElementById("createGroupError");
 
+  const groupAvatarUploadTrigger = document.getElementById("groupAvatarUploadTrigger");
+  const groupAvatarFileEl = document.getElementById("groupAvatarFile");
+  const groupAvatarPreviewEl = document.getElementById("groupAvatarPreview");
+  const groupAvatarPlaceholderEl = document.getElementById("groupAvatarPlaceholder");
+  const groupAvatarUrlEl = document.getElementById("groupAvatarUrl");
+
   let socket;
   let groupUnreadCounts = {};
   const UNREAD_KEY = `chat:unread-groups:${me.username}`;
@@ -112,7 +118,7 @@
 
       return `
         <article class="discover-item" data-open-group="${escapeHtml(group.slug)}">
-          <img class="discover-item-avatar" src="https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=120&q=80" alt="${escapeHtml(group.name || group.slug)}">
+          <img class="discover-item-avatar" src="${group.avatarUrl || 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=120&q=80'}" alt="${escapeHtml(group.name || group.slug)}">
           <div class="discover-item-title">${escapeHtml(group.name || group.slug)}</div>
           ${badge}
           <button class="join-btn" type="button" data-join-group="${escapeHtml(group.slug)}">${joined ? "Open" : "Join"}</button>
@@ -131,7 +137,7 @@
     }
     recentSearchListEl.innerHTML = recentSearches.map((group) => `
       <div class="recent-item" data-recent-slug="${escapeHtml(group.slug)}">
-        <img class="recent-avatar" src="https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=120&q=80" alt="${escapeHtml(group.name || group.slug)}">
+        <img class="recent-avatar" src="${group.avatarUrl || 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=120&q=80'}" alt="${escapeHtml(group.name || group.slug)}">
         <div>
           <div class="recent-title">${escapeHtml(group.name || group.slug)}</div>
           <div class="recent-sub">Channel · ${Number(group.memberCount || 0)} members</div>
@@ -155,7 +161,7 @@
 
       return `
         <div class="recent-item" data-search-slug="${escapeHtml(group.slug)}">
-          <img class="recent-avatar" src="https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=120&q=80" alt="${escapeHtml(group.name || group.slug)}">
+          <img class="recent-avatar" src="${group.avatarUrl || 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=120&q=80'}" alt="${escapeHtml(group.name || group.slug)}">
           <div>
             <div class="recent-title">${escapeHtml(group.name || group.slug)}</div>
             <div class="recent-sub">${escapeHtml(group.slug)} · ${Number(group.memberCount || 0)} members</div>
@@ -250,6 +256,10 @@
     createGroupNameEl.value = "";
     createGroupSlugEl.value = "";
     createGroupPrivateEl.checked = false;
+    if (groupAvatarPreviewEl) groupAvatarPreviewEl.style.display = "none";
+    if (groupAvatarPlaceholderEl) groupAvatarPlaceholderEl.style.display = "block";
+    if (groupAvatarUrlEl) groupAvatarUrlEl.value = "";
+    if (groupAvatarFileEl) groupAvatarFileEl.value = "";
     setCreateModalError("");
     requestAnimationFrame(() => createGroupNameEl.focus());
   }
@@ -263,12 +273,13 @@
     const name = createGroupNameEl.value.trim();
     const slug = slugify(createGroupSlugEl.value);
     const isPrivate = !!createGroupPrivateEl.checked;
+    const avatarUrl = groupAvatarUrlEl ? groupAvatarUrlEl.value.trim() : "";
     if (!name) return setCreateModalError("Group name is required.", true);
     if (!slug) return setCreateModalError("Valid slug is required.", true);
     setCreateModalError("");
     const response = await authFetch("/api/groups", {
       method: "POST",
-      body: JSON.stringify({ name: name.trim(), slug, isPrivate })
+      body: JSON.stringify({ name: name.trim(), slug, isPrivate, avatarUrl })
     });
     const data = await response.json();
     if (!response.ok) return setCreateModalError(data.error || "Could not create group.", true);
@@ -382,6 +393,31 @@
     event.preventDefault();
     await createGroupFlow();
   });
+
+  if (groupAvatarUploadTrigger && groupAvatarFileEl) {
+    groupAvatarUploadTrigger.addEventListener("click", () => {
+      groupAvatarFileEl.click();
+    });
+
+    groupAvatarFileEl.addEventListener("change", () => {
+      const file = groupAvatarFileEl.files?.[0];
+      if (!file) return;
+      
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result;
+        if (groupAvatarUrlEl) groupAvatarUrlEl.value = result;
+        if (groupAvatarPreviewEl) {
+          groupAvatarPreviewEl.src = result;
+          groupAvatarPreviewEl.style.display = "block";
+        }
+        if (groupAvatarPlaceholderEl) {
+          groupAvatarPlaceholderEl.style.display = "none";
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+  }
 
   try {
     const mine = await authFetch("/api/groups");
